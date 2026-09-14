@@ -12,18 +12,18 @@
       --border: #1e1e2e;
       --input-bg: #111122;
       --input-border: #2a2a3e;
-      --text: #e0e0ff;
-      --text-muted: #888;
-      --text-dim: #444;
+      --text: #ffffff;
+      --text-muted: #ffffff;
+      --text-dim:#ffffff;
       --red: #e24b4a;
       --green: #4a9e4a;
       --blue: #4a6ae2;
-      --font: 'Courier New', monospace;
+      --font: 'Segoe UI', Arial, sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { font-size: clamp(13px, 1.2vw, 16px); }
+    html { font-size: clamp(15px, 1.5vw, 18px); }
 
     body {
       background: var(--bg);
@@ -84,13 +84,13 @@
       border: 1px solid var(--input-border);
       border-radius: 6px;
       padding: 0.5rem 0.65rem;
-      color: #a0a0cc;
+      color: #ffffff;
       font-size: 0.75rem;
       font-family: var(--font);
       width: 100%;
       outline: none;
     }
-    input::placeholder, textarea::placeholder { color: #333; }
+    input::placeholder, textarea::placeholder { color: #eeeeee; }
     textarea { resize: none; }
 
     .env-badge {
@@ -156,7 +156,7 @@
       margin-top: auto;
       flex-shrink: 0;
     }
-    .atk-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .atk-btn:disabled { background: #333; color: #ffffff; cursor: not-allowed; }
 
     /* MAIN */
     .main {
@@ -189,10 +189,10 @@
     }
     .stat-val.red   { color: var(--red); }
     .stat-val.green { color: var(--green); }
-    .stat-val.gray  { color: #555; }
+    .stat-val.gray  { color: #d8d7d7; }
     .stat-lbl {
       font-size: 0.6rem;
-      color: #555;
+      color: #ffffff;
       letter-spacing: 0.1rem;
       margin-top: 0.4rem;
       text-transform: uppercase;
@@ -211,7 +211,7 @@
       border: 1px solid var(--input-border);
       border-radius: 4px;
       padding: 0.35rem 0.65rem;
-      color: #666;
+      color: #ffffff;
       font-size: 0.7rem;
       font-family: var(--font);
       cursor: pointer;
@@ -232,11 +232,11 @@
     }
     .result-row.vuln { border-left: 3px solid var(--red); }
     .result-row.safe { border-left: 3px solid var(--green); }
-    .rid { font-family: var(--font); color: #555; width: 2rem; flex-shrink: 0; }
+    .rid { font-family: var(--font); color: #fcfcfc; width: 2rem; flex-shrink: 0; }
     .rbadge { font-size: 0.6rem; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; white-space: nowrap; }
     .rbadge.v { background: #1a0505; color: var(--red);   border: 1px solid #3a0a0a; }
     .rbadge.s { background: #051a05; color: var(--green); border: 1px solid #0a3a0a; }
-    .rdesc { color: #999; flex: 1; }
+    .rdesc { color: #ffffff; flex: 1; }
     .rtime { color: var(--text-dim); font-size: 0.65rem; white-space: nowrap; }
 
     /* LOADING */
@@ -258,7 +258,7 @@
       align-items: center;
       justify-content: center;
       flex: 1;
-      color: #333;
+      color: #ffffff;
       font-size: 0.75rem;
       letter-spacing: 0.1rem;
     }
@@ -332,7 +332,7 @@
         <div class="snake">🐍</div>
         <div class="loading-txt">executando vetores de ataque...</div>
       </div>
-      <div class="empty" id="empty">configure o alvo e inicie o ataque</div>
+      <div class="empty" id="empty">Configure o alvo e inicie o ataque</div>
       <div class="result-rows" id="result-rows"></div>
     </div>
   </div>
