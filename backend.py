@@ -38,12 +38,16 @@ def index():
     return FileResponse("frontend/index.html")
 
 
+@app.get("/favicon.ico")
+def favicon():
+    return FileResponse("frontend/favicon.ico")
+
+
 @app.post("/atacar")
 def atacar(config: ConfigAtaque):
     if config.ambiente.lower() in ["prd", "prod", "production"]:
         return {"erro": "Ambiente produtivo bloqueado. Use ambiente de laboratório."}
 
-    # Monta o dict de config no formato que o runner espera
     config_dict = {
         "alvo": {
             "nome":      config.nome,
@@ -61,7 +65,6 @@ def atacar(config: ConfigAtaque):
         "marcadores": config.marcadores,
     }
 
-    # Salva config temporária pro runner
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         import yaml
         yaml.dump(config_dict, f)
@@ -70,7 +73,7 @@ def atacar(config: ConfigAtaque):
     try:
         categorias = config.categorias if config.categorias else None
         resultados = executar_bateria(tmp_path, categorias=categorias)
-        relatorio  = gerar_relatorio(resultados)
+        relatorio  = gerar_relatorio(resultados, alvo=config.nome)
         return relatorio
     finally:
         os.unlink(tmp_path)

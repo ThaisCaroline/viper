@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VIPER</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <style>
     :root {
       --bg: #0a0a0f;
@@ -90,7 +91,10 @@
       width: 100%;
       outline: none;
     }
-    input::placeholder, textarea::placeholder { color: #eeeeee; }
+    input::placeholder, textarea::placeholder {
+      color: #555566;
+      font-style: italic;
+    }
     textarea { resize: none; }
 
     .env-badge {
@@ -135,9 +139,14 @@
     .vchk.on { background: var(--red); border-color: var(--red); color: white; }
     .vchk.on::after { content: '✓'; }
     .vcat { font-size: 0.6rem; padding: 0.15rem 0.35rem; border-radius: 2px; }
-    .cat-direct   { background: #1a0a0a; color: var(--red); }
-    .cat-indirect { background: #0a1a0a; color: var(--green); }
-    .cat-chaining { background: #0a0a1a; color: var(--blue); }
+    .cat-direct            { background: #1a0a0a; color: var(--red); }
+    .cat-indirect          { background: #0a1a0a; color: var(--green); }
+    .cat-chaining          { background: #0a0a1a; color: var(--blue); }
+    .cat-roleplay          { background: #1a0a1a; color: #c44ae2; }
+    .cat-autoridade        { background: #1a1a0a; color: #e2c44a; }
+    .cat-hipotetico        { background: #0a1a1a; color: #4ae2c4; }
+    .cat-engenharia_social { background: #1a0f0a; color: #e2844a; }
+    .cat-ofuscacao         { background: #0f0a1a; color: #844ae2; }
     .vlabel { color: var(--text-muted); flex: 1; }
 
     /* BOTÃO */
@@ -339,15 +348,25 @@
 
   <script>
     const vetores = [
-      { id: "D01", cat: "direct",   label: "Listar clientes" },
-      { id: "D02", cat: "direct",   label: "E-mail externo" },
-      { id: "D03", cat: "direct",   label: "Override prompt" },
-      { id: "D04", cat: "direct",   label: "Exfiltrar system prompt" },
-      { id: "D05", cat: "direct",   label: "Acesso cross-user" },
-      { id: "D06", cat: "direct",   label: "Instrução em base64" },
-      { id: "I01", cat: "indirect", label: "Injeção via documento" },
-      { id: "I02", cat: "indirect", label: "Injeção via FAQ" },
-      { id: "C01", cat: "chaining", label: "Encadeamento" },
+      { id: "D01", cat: "direct",            label: "Listar registros" },
+      { id: "D02", cat: "direct",            label: "Envio a destino externo" },
+      { id: "D03", cat: "direct",            label: "Override de prompt" },
+      { id: "D04", cat: "direct",            label: "Exfiltrar system prompt" },
+      { id: "D05", cat: "direct",            label: "Acesso cross-user" },
+      { id: "D06", cat: "direct",            label: "Instrução em base64" },
+      { id: "I01", cat: "indirect",          label: "Injeção via documento (sim.)" },
+      { id: "I02", cat: "indirect",          label: "Injeção via FAQ (sim.)" },
+      { id: "C01", cat: "chaining",          label: "Encadeamento de ações" },
+      { id: "R01", cat: "roleplay",          label: "Ficção e roteiro" },
+      { id: "R02", cat: "roleplay",          label: "Simulação de treinamento" },
+      { id: "A01", cat: "autoridade",        label: "Fingir ser desenvolvedor" },
+      { id: "A02", cat: "autoridade",        label: "Fingir ser suporte técnico" },
+      { id: "H01", cat: "hipotetico",        label: "Pergunta hipotética direta" },
+      { id: "H02", cat: "hipotetico",        label: "Perspectiva do atacante" },
+      { id: "S01", cat: "engenharia_social", label: "Construção de confiança" },
+      { id: "S02", cat: "engenharia_social", label: "Urgência e pressão emocional" },
+      { id: "O01", cat: "ofuscacao",         label: "Instrução em outro idioma" },
+      { id: "O02", cat: "ofuscacao",         label: "Instrução em hex" },
     ];
 
     const selecionados = new Set(vetores.map(v => v.id));
