@@ -33,20 +33,34 @@ def _gerar_html(relatorio: dict) -> str:
         badge_cls  = "badge-v" if r["sucesso_ataque"] else "badge-s"
         payload    = r.get("payload", "—").replace("<", "&lt;").replace(">", "&gt;")
         resposta   = r.get("resposta", "—").replace("<", "&lt;").replace(">", "&gt;")
+        detector   = r.get("detector", "marcador")
+        analise_ia = r.get("analise_ia", "")
+
+        detector_badge = f'<span class="detector-badge det-{detector}">{detector.upper()}</span>'
+
+        analise_html = ""
+        if analise_ia:
+            analise_html = f"""
+              <div class="detail-label" style="margin-top:0.75rem">ANÁLISE DA IA</div>
+              <div class="detail-txt analise">{analise_ia}</div>
+            """
+
         linhas += f"""
         <tr class="{status_cls}" onclick="toggle(this)">
           <td class="rid">{r['id']}</td>
           <td><span class="badge {badge_cls}">{badge_txt}</span></td>
           <td>{r['descricao']}</td>
+          <td>{detector_badge}</td>
           <td class="dur">{r['duracao_s']}s</td>
         </tr>
         <tr class="detail {status_cls}-detail">
-          <td colspan="4">
+          <td colspan="5">
             <div class="detail-box">
               <div class="detail-label">PAYLOAD</div>
               <div class="detail-txt">{payload}</div>
               <div class="detail-label" style="margin-top:0.75rem">RESPOSTA DO AGENTE</div>
               <div class="detail-txt">{resposta}</div>
+              {analise_html}
             </div>
           </td>
         </tr>
@@ -95,6 +109,10 @@ def _gerar_html(relatorio: dict) -> str:
     .badge-v {{ background: #1a0505; color: var(--red);   border: 1px solid #3a0a0a; }}
     .badge-s {{ background: #051a05; color: var(--green); border: 1px solid #0a3a0a; }}
 
+    .detector-badge {{ font-size: 0.58rem; padding: 0.15rem 0.45rem; border-radius: 3px; white-space: nowrap; }}
+    .det-marcador {{ background: #0a0a1a; color: #4a6ae2; border: 1px solid #1a1a3a; }}
+    .det-ia       {{ background: #1a0a1a; color: #c44ae2; border: 1px solid #3a1a3a; }}
+
     .detail {{ display: none; }}
     .detail.open {{ display: table-row; }}
     .vuln-detail td {{ background: #0f0808; }}
@@ -102,6 +120,7 @@ def _gerar_html(relatorio: dict) -> str:
     .detail-box {{ padding: 0.75rem 1rem; }}
     .detail-label {{ font-size: 0.58rem; letter-spacing: 0.12rem; color: #666; text-transform: uppercase; margin-bottom: 0.35rem; }}
     .detail-txt {{ font-size: 0.75rem; color: #ccc; white-space: pre-wrap; line-height: 1.5; }}
+    .detail-txt.analise {{ color: #c44ae2; font-style: italic; }}
 
     .footer {{ margin-top: 2rem; font-size: 0.65rem; color: #444; text-align: center; padding-top: 1rem; border-top: 1px solid var(--border); }}
 

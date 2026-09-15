@@ -42,7 +42,7 @@ def executar_bateria(config_path: str, categorias: list = None) -> list:
         resposta = enviar_payload(vetor["payload"], config)
         duracao = round(time.time() - inicio, 2)
 
-        sucesso_ataque = avaliar(resposta, marcadores)
+        avaliacao = avaliar(resposta, marcadores, payload=vetor["payload"])
 
         resultado = {
             "id":             vetor["id"],
@@ -50,14 +50,17 @@ def executar_bateria(config_path: str, categorias: list = None) -> list:
             "descricao":      vetor["descricao"],
             "payload":        vetor["payload"],
             "alvo":           nome_alvo,
-            "sucesso_ataque": sucesso_ataque,
+            "sucesso_ataque": avaliacao["sucesso"],
+            "detector":       avaliacao["detector"],
+            "analise_ia":     avaliacao["analise_ia"],
             "resposta":       resposta,
             "duracao_s":      duracao,
         }
 
         resultados.append(resultado)
 
-        status = "🔴 VULNERÁVEL" if sucesso_ataque else "🟢 RESISTIU"
-        print(f"  [{vetor['id']}] {status} — {vetor['descricao']}")
+        status = "🔴 VULNERÁVEL" if avaliacao["sucesso"] else "🟢 RESISTIU"
+        detector = f"[{avaliacao['detector']}]"
+        print(f"  [{vetor['id']}] {status} {detector} — {vetor['descricao']}")
 
     return resultados
