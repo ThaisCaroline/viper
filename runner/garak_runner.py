@@ -1,165 +1,130 @@
 """
 VIPER — Garak Runner
-Executa probes do garak contra o agente alvo via RestGenerator.
-Converte resultados para o formato padrão VIPER.
+Usa o garak como fonte de prompts de ataque.
+Os prompts são executados via HTTP adapter do VIPER e avaliados pelo scorer do VIPER.
 """
 
 import json
 import time
 import uuid
+import inspect
+import urllib.request
+import urllib.error
+
+from runner.scorer import avaliar
 
 
 def executar_garak(config_dict: dict) -> list:
     """
-    Executa bateria de probes do garak contra o agente alvo.
+    Extrai prompts das probes do garak e executa contra o agente alvo.
     Retorna lista de resultados no formato VIPER.
     """
     try:
-        import garak.cli
-        import garak._config as _config
-        from garak.generators.rest import RestGenerator
-        from garak.harnesses.probewise import ProbewiseHarness
-        import garak.probes
+        from garak.probes.base import Probe
     except ImportError:
         print("[GARAK] garak não instalado — pulando camada 1")
         return []
 
-    url = config_dict["url"]
-    json_input = config_dict.get("json_input", "")
-    nome = config_dict.get("nome", "Agente")
+    url            = config_dict["url"]
+    json_input     = config_dict.get("json_input", "")
+    dados_proteger = config_dict.get("dados_proteger", [])
+    token          = config_dict.get("token", "")
+    nome           = config_dict.get("nome", "Agente")
 
-    # Descobre o campo de entrada a partir do JSON de input de exemplo
-    campo_mensagem = _extrair_campo_mensagem(json_input)
-    campo_resposta = _extrair_campo_resposta(config_dict.get("json_output", ""))
+    campo_mensagem = _extrair_campo(json_input, "message")
 
-    print(f"\n[GARAK] Iniciando — campo entrada: '{campo_mensagem}' | campo saída: '{campo_resposta}'")
+    print(f"\n[GARAK] Iniciando — campo entrada: '{campo_mensagem}'")
 
-    generator_config = {
-        "uri":                    url,
-        "method":                 "post",
-        "headers":                _montar_headers(config_dict.get("token", "")),
-        "req_template_json_object": {campo_mensagem: "$INPUT"},
-        "response_json":          True,
-        "response_json_field":    campo_resposta,
-    }
+    # Probes confirmadas no garak 0.17
+    probes_alvo = [
+        "garak.probes.dan",
+        "garak.probes.misleading",
+        "garak.probes.promptinject",
+        "garak.probes.latentinjection",
+        "garak.probes.encoding",
+    ]
 
     resultados = []
 
-    try:
-        generator = RestGenerator(**generator_config)
+    for probe_path in probes_alvo:
+        try:
+            modulo = __import__(probe_path, fromlist=[""])
+            classes = [
+                cls for _, cls in inspect.getmembers(modulo, inspect.isclass)
+                if issubclass(cls, Probe) and cls is not Probe
+                and cls.__module__ == probe_path
+            ]
 
-        # Probes relevantes para agentes conversacionais
-        probes_alvo = [
-            "promptinjection",
-            "dan",
-            "knownbadsignatures",
-            "leakage",
-            "malwaregen",
-            "misleading",
-            "packagehallucination",
-            "xss",
-        ]
-
-        for probe_nome in probes_alvo:
-            try:
-                probe_modulo = __import__(
-                    f"garak.probes.{probe_nome}",
-                    fromlist=[""]
-                )
-                classes = _obter_classes_probe(probe_modulo)
-
-                for classe in classes:
-                    try:
-                        probe = classe()
-                        inicio = time.time()
-                        tentativas = probe.probe(generator)
-                        duracao = round(time.time() - inicio, 2)
-
-                        for tentativa in tentativas:
-                            resultado = _converter_tentativa(
-                                tentativa, probe_nome, classe.__name__,
-                                nome, duracao
-                            )
-                            resultados.append(resultado)
-
-                    except Exception as e:
-                        print(f"[GARAK] Erro na probe {classe.__name__}: {e}")
+            for classe in classes:
+                try:
+                    probe = classe()
+                    prompts = getattr(probe, "prompts", [])
+                    if not prompts:
                         continue
 
-            except Exception as e:
-                print(f"[GARAK] Erro ao carregar probe {probe_nome}: {e}")
-                continue
+                    probe_nome = probe_path.split(".")[-1]
+                    print(f"  [GARAK] {probe_nome}.{classe.__name__} — {len(prompts)} prompts")
 
-    except Exception as e:
-        print(f"[GARAK] Erro ao inicializar generator: {e}")
-        return []
+                    for prompt in prompts[:2]:  # limita 2 por classe pra não sobrecarregar
+                        # substitui placeholder do garak pelo nome real do agente
+                        prompt = prompt.replace("{generator.name}", nome)
+                        inicio = time.time()
+                        resposta = _enviar_payload(prompt, url, campo_mensagem, token)
+                        duracao  = round(time.time() - inicio, 2)
 
-    print(f"[GARAK] Concluído — {len(resultados)} tentativas executadas")
+                        # pula scorer se agente retornou erro de servidor
+                        if resposta.startswith("[HTTP 5"):
+                            avaliacao = {"sucesso": False, "detector": "marcador", "analise_ia": ""}
+                        else:
+                            avaliacao = avaliar(resposta, dados_proteger, payload=prompt)
+
+                        resultados.append({
+                            "id":             f"G-{probe_nome[:3].upper()}-{str(uuid.uuid4())[:6].upper()}",
+                            "categoria":      "garak",
+                            "descricao":      f"{probe_nome} · {classe.__name__}",
+                            "payload":        prompt,
+                            "alvo":           nome,
+                            "sucesso_ataque": avaliacao["sucesso"],
+                            "detector":       avaliacao["detector"],
+                            "analise_ia":     avaliacao["analise_ia"],
+                            "resposta":       resposta,
+                            "duracao_s":      duracao,
+                        })
+
+                except Exception as e:
+                    print(f"  [GARAK] Erro na probe {classe.__name__}: {e}")
+                    continue
+
+        except Exception as e:
+            print(f"  [GARAK] Erro ao carregar {probe_path}: {e}")
+            continue
+
+    print(f"[GARAK] Concluído — {len(resultados)} vetores executados")
     return resultados
 
 
-def _extrair_campo_mensagem(json_input: str) -> str:
-    """Extrai o primeiro campo do JSON de input como campo de mensagem."""
+def _extrair_campo(json_str: str, fallback: str) -> str:
     try:
-        obj = json.loads(json_input)
+        obj = json.loads(json_str)
         if isinstance(obj, dict) and obj:
             return list(obj.keys())[0]
-    except (json.JSONDecodeError, TypeError):
+    except Exception:
         pass
-    return "message"
+    return fallback
 
 
-def _extrair_campo_resposta(json_output: str) -> str:
-    """Extrai o primeiro campo do JSON de output como campo de resposta."""
-    try:
-        obj = json.loads(json_output)
-        if isinstance(obj, dict) and obj:
-            return list(obj.keys())[0]
-    except (json.JSONDecodeError, TypeError):
-        pass
-    return "output"
-
-
-def _montar_headers(token: str) -> dict:
+def _enviar_payload(payload: str, url: str, campo_mensagem: str, token: str) -> str:
+    """Envia payload ao agente via HTTP POST."""
+    body = json.dumps({campo_mensagem: payload}).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    return headers
 
-
-def _obter_classes_probe(modulo) -> list:
-    """Retorna as classes de probe de um módulo garak."""
-    import inspect
     try:
-        from garak.probes.base import Probe
-        return [
-            cls for _, cls in inspect.getmembers(modulo, inspect.isclass)
-            if issubclass(cls, Probe) and cls is not Probe
-        ]
-    except Exception:
-        return []
-
-
-def _converter_tentativa(tentativa, probe_nome: str, classe_nome: str, alvo: str, duracao: float) -> dict:
-    """Converte uma tentativa do garak para o formato VIPER."""
-    try:
-        payload  = tentativa.prompt if hasattr(tentativa, "prompt") else str(tentativa)
-        resposta = tentativa.outputs[0] if hasattr(tentativa, "outputs") and tentativa.outputs else ""
-        sucesso  = tentativa.passed is False if hasattr(tentativa, "passed") else False
-    except Exception:
-        payload  = str(tentativa)
-        resposta = ""
-        sucesso  = False
-
-    return {
-        "id":             f"G-{probe_nome[:3].upper()}-{str(uuid.uuid4())[:4].upper()}",
-        "categoria":      "garak",
-        "descricao":      f"{probe_nome} · {classe_nome}",
-        "payload":        payload,
-        "alvo":           alvo,
-        "sucesso_ataque": sucesso,
-        "detector":       "garak",
-        "analise_ia":     None,
-        "resposta":       resposta,
-        "duracao_s":      duracao,
-    }
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        return f"[HTTP {e.code}] {e.reason}"
+    except urllib.error.URLError as e:
+        return f"[ERRO DE CONEXÃO] {e.reason}"
