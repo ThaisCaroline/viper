@@ -1,66 +1,54 @@
 """
-Runner: carrega os vetores e executa cada um contra o alvo via HTTP.
+Runner: orquestra as três camadas de ataque do VIPER.
+  Camada 1 — Garak: probes de red team via RestGenerator
+  Camada 2 — IA Contextual: ataques gerados com base no contexto do agente
+  Camada 3 — Documento: injeção indireta via documento envenenado (opcional)
 """
 
-import os
-import time
-import yaml
-from adapters.http_adapter import carregar_config, enviar_payload
-from runner.scorer import avaliar
-
-VECTORS_PATH = os.path.join(os.path.dirname(__file__), "..", "attacks", "vectors.yaml")
+from runner.garak_runner import executar_garak
+from runner.ai_attacker import executar_ataques_contextuais
+from runner.doc_injector import executar_injecao_documento
 
 
-def carregar_vetores(categorias: list = None) -> list:
-    with open(VECTORS_PATH, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    vetores = data["vetores"]
-    if categorias:
-        vetores = [v for v in vetores if v["categoria"] in categorias]
-    return vetores
-
-
-def executar_bateria(config_path: str, categorias: list = None) -> list:
+def executar_bateria(config_dict: dict) -> list:
     """
-    Executa todos os vetores contra o alvo configurado.
-    Retorna lista de resultados.
+    Executa as três camadas de ataque contra o agente alvo.
+    Retorna lista consolidada de resultados no formato VIPER.
     """
-    config = carregar_config(config_path)
-    marcadores = config.get("marcadores", [])
-    nome_alvo = config["alvo"]["nome"]
-    vetores = carregar_vetores(categorias)
+    nome               = config_dict.get("nome", "Agente")
+    usar_ia_contextual = config_dict.get("usar_ia_contextual", True)
+    aceita_documento   = config_dict.get("aceita_documento", False)
 
     print(f"\n🐍 VIPER iniciando")
-    print(f"   Alvo: {nome_alvo}")
-    print(f"   Vetores: {len(vetores)}")
-    print(f"   Marcadores: {len(marcadores)}\n")
+    print(f"   Alvo: {nome}")
+    print(f"   IA contextual: {'sim' if usar_ia_contextual else 'não'}")
+    print(f"   Documento: {'sim' if aceita_documento else 'não'}\n")
 
     resultados = []
 
-    for vetor in vetores:
-        inicio = time.time()
-        resposta = enviar_payload(vetor["payload"], config)
-        duracao = round(time.time() - inicio, 2)
+    # Camada 1 — Garak
+    print("── Camada 1: Garak ──────────────────────────")
+    resultados_garak = executar_garak(config_dict)
+    resultados.extend(resultados_garak)
+    print(f"   {len(resultados_garak)} resultados\n")
 
-        avaliacao = avaliar(resposta, marcadores, payload=vetor["payload"])
+    # Camada 2 — IA Contextual (opcional)
+    if usar_ia_contextual:
+        print("── Camada 2: IA Contextual ──────────────────")
+        resultados_ia = executar_ataques_contextuais(config_dict)
+        resultados.extend(resultados_ia)
+        print(f"   {len(resultados_ia)} resultados\n")
+    else:
+        print("── Camada 2: IA Contextual — desativada ─────\n")
 
-        resultado = {
-            "id":             vetor["id"],
-            "categoria":      vetor["categoria"],
-            "descricao":      vetor["descricao"],
-            "payload":        vetor["payload"],
-            "alvo":           nome_alvo,
-            "sucesso_ataque": avaliacao["sucesso"],
-            "detector":       avaliacao["detector"],
-            "analise_ia":     avaliacao["analise_ia"],
-            "resposta":       resposta,
-            "duracao_s":      duracao,
-        }
+    # Camada 3 — Documento (opcional)
+    if aceita_documento:
+        print("── Camada 3: Injeção Indireta ───────────────")
+        resultados_doc = executar_injecao_documento(config_dict)
+        resultados.extend(resultados_doc)
+        print(f"   {len(resultados_doc)} resultados\n")
 
-        resultados.append(resultado)
-
-        status = "🔴 VULNERÁVEL" if avaliacao["sucesso"] else "🟢 RESISTIU"
-        detector = f"[{avaliacao['detector']}]"
-        print(f"  [{vetor['id']}] {status} {detector} — {vetor['descricao']}")
+    total_vuln = sum(1 for r in resultados if r["sucesso_ataque"])
+    print(f"🐍 Concluído — {len(resultados)} vetores | {total_vuln} vulneráveis\n")
 
     return resultados

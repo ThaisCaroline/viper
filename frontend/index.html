@@ -421,6 +421,17 @@
 
       <div>
         <label class="checkbox-row">
+          <input type="checkbox" id="usar-ia" checked>
+          <div class="tooltip-wrap">
+            <span>gerar ataques com IA contextual</span>
+            <div class="tooltip-icon" style="margin-left:0.35rem">?</div>
+            <div class="tooltip-box">A IA gera ataques específicos para esse agente com base no contexto informado. Consome tokens adicionais do Azure OpenAI.</div>
+          </div>
+        </label>
+      </div>
+
+      <div>
+        <label class="checkbox-row">
           <input type="checkbox" id="aceita-doc" onchange="toggleDocFormat()">
           <span>o agente aceita documentos?</span>
         </label>
@@ -535,6 +546,7 @@
       const jsonInput = document.getElementById("json-input").value.trim();
       const jsonOutput = document.getElementById("json-output").value.trim();
       const dadosProteger = document.getElementById("dados-proteger").value.trim();
+      const usarIa    = document.getElementById("usar-ia").checked;
       const aceitaDoc = document.getElementById("aceita-doc").checked;
       const formatoDoc = document.getElementById("formato-doc").value;
 
@@ -569,6 +581,7 @@
             json_input: jsonInput,
             json_output: jsonOutput,
             dados_proteger: dadosProteger ? dadosProteger.split("\n").map(m => m.trim()).filter(Boolean) : [],
+            usar_ia_contextual: usarIa,
             aceita_documento: aceitaDoc,
             formato_documento: aceitaDoc ? formatoDoc : null
           })
