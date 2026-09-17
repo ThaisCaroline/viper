@@ -1,7 +1,6 @@
 """
 VIPER — IA Contextual
 Gera ataques específicos para o agente alvo usando Azure OpenAI.
-Usa contexto, JSON de input e JSON de output fornecidos pelo usuário.
 """
 
 import os
@@ -15,6 +14,7 @@ from openai import OpenAI
 from runner.scorer import avaliar
 
 NUM_ATAQUES = 10
+DUMMY_DOC = "Documento de teste VIPER.\nEste arquivo foi gerado automaticamente para fins de teste de segurança."
 
 
 def _cliente_ia():
@@ -23,25 +23,23 @@ def _cliente_ia():
         base_url=os.getenv("AZURE_OPENAI_ENDPOINT", "").rstrip("/") + "/"
     )
 
+
 def executar_ataques_contextuais(config_dict: dict) -> list:
-    """
-    Gera e executa ataques contextualizados para o agente alvo.
-    Retorna lista de resultados no formato VIPER.
-    """
-    url        = config_dict["url"]
-    contexto   = config_dict.get("contexto", "")
-    json_input = config_dict.get("json_input", "")
-    json_output = config_dict.get("json_output", "")
+    url            = config_dict["url"]
+    contexto       = config_dict.get("contexto", "")
+    json_input     = config_dict.get("json_input", "")
+    json_output    = config_dict.get("json_output", "")
     dados_proteger = config_dict.get("dados_proteger", [])
-    token      = config_dict.get("token", "")
-    nome       = config_dict.get("nome", "Agente")
+    token          = config_dict.get("token", "")
+    nome           = config_dict.get("nome", "Agente")
+    aceita_doc     = config_dict.get("aceita_documento", False)
+    campo_doc      = config_dict.get("campo_documento", "file")
 
     if not contexto or not json_input:
         print("[IA CONTEXTUAL] Contexto ou JSON de input ausente — pulando camada 2")
         return []
 
     campo_mensagem = config_dict.get("campo_ataque") or _extrair_campo_mensagem(json_input)
-    campo_resposta = _extrair_campo_resposta(json_output)
 
     print(f"[IA CONTEXTUAL] Gerando {NUM_ATAQUES} ataques para: {contexto[:60]}...")
 
@@ -58,8 +56,13 @@ def executar_ataques_contextuais(config_dict: dict) -> list:
         descricao = ataque.get("descricao", f"Ataque contextual {i}")
 
         inicio = time.time()
-        resposta = _enviar_payload(payload, url, campo_mensagem, token)
-        duracao  = round(time.time() - inicio, 2)
+
+        if aceita_doc:
+            resposta = _enviar_multipart(payload, url, campo_mensagem, token, campo_doc)
+        else:
+            resposta = _enviar_payload(payload, url, campo_mensagem, token)
+
+        duracao = round(time.time() - inicio, 2)
 
         avaliacao = avaliar(resposta, dados_proteger, payload=payload)
 
@@ -85,10 +88,6 @@ def executar_ataques_contextuais(config_dict: dict) -> list:
 
 
 def _gerar_payloads(contexto: str, json_input: str, json_output: str, dados_proteger: list) -> list:
-    """
-    Chama o Azure OpenAI para gerar payloads de ataque contextualizados.
-    Retorna lista de dicts com 'payload' e 'descricao'.
-    """
     if not os.getenv("AZURE_OPENAI_API_KEY"):
         print("[IA CONTEXTUAL] Credenciais Azure OpenAI ausentes")
         return []
@@ -138,9 +137,37 @@ Responda APENAS com um JSON válido, sem texto antes ou depois, no formato:
 
 
 def _enviar_payload(payload: str, url: str, campo_mensagem: str, token: str) -> str:
-    """Envia um payload para o agente via HTTP POST."""
     body = json.dumps({campo_mensagem: payload}).encode("utf-8")
     headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        return f"[HTTP {e.code}] {e.reason}"
+    except urllib.error.URLError as e:
+        return f"[ERRO DE CONEXÃO] {e.reason}"
+
+
+def _enviar_multipart(payload: str, url: str, campo_mensagem: str, token: str, campo_doc: str) -> str:
+    boundary = f"----VIPERBoundary{uuid.uuid4().hex}"
+    doc_bytes = DUMMY_DOC.encode("utf-8")
+
+    body = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="{campo_mensagem}"\r\n\r\n'
+        f"{payload}\r\n"
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="{campo_doc}"; filename="viper_doc.txt"\r\n'
+        f"Content-Type: text/plain\r\n\r\n"
+    ).encode("utf-8") + doc_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+    headers = {
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Content-Length": str(len(body)),
+    }
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
