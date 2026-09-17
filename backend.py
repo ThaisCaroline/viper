@@ -64,4 +64,11 @@ def atacar(config: ConfigAtaque):
 
     resultados = executar_bateria(config_dict)
     relatorio  = gerar_relatorio(resultados, alvo=config.nome)
+
+    # lê o HTML gerado e inclui no retorno pra o front usar no botão PDF
+    html_path = relatorio.get("html_path", "")
+    if html_path and os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            relatorio["relatorio_html"] = f.read()
+
     return relatorio

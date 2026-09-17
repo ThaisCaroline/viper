@@ -217,6 +217,7 @@ def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "
         "resistiu":    resistiu,
         "taxa_ataque": taxa_ataque,
         "resultados":  resultados_limpos,
+        "html_path":   html_path,
     }
 
     json_path = os.path.join(output_dir, f"resultado_{ts}.json")
