@@ -98,6 +98,13 @@ def api_historico():
     return listar_testes()
 
 
+@app.delete("/api/historico/{teste_id}")
+def api_deletar_teste(teste_id: int):
+    from runner.logger import deletar_teste
+    deletar_teste(teste_id)
+    return {"ok": True}
+
+
 @app.get("/api/historico/{teste_id}/html")
 def api_teste_html(teste_id: int):
     from fastapi.responses import HTMLResponse

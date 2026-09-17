@@ -87,6 +87,14 @@ def buscar_teste(teste_id: int) -> dict:
     return d
 
 
+def deletar_teste(teste_id: int):
+    """Deleta um teste do banco."""
+    conn = _conectar()
+    conn.execute("DELETE FROM testes WHERE id = ?", (teste_id,))
+    conn.commit()
+    conn.close()
+
+
 def comparar_testes(id1: int, id2: int) -> dict:
     """
     Compara dois testes do mesmo agente.

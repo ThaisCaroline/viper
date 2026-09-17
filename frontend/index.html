@@ -494,6 +494,14 @@
 
     let ultimoRelatorio = null;
     let termInterval = null;
+    let estaAtacando = false;
+
+    window.addEventListener("beforeunload", (e) => {
+      if (estaAtacando) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
 
     document.querySelectorAll('.tooltip-wrap').forEach(wrap => {
       wrap.addEventListener('mouseenter', () => {
@@ -571,6 +579,7 @@
       if (!jsonOutput) { alert("Informe o JSON de output de exemplo."); return; }
 
       document.getElementById("atk-btn").disabled = true;
+      estaAtacando = true;
       document.getElementById("loading").classList.add("visible");
       document.getElementById("empty").style.display = "none";
       document.getElementById("result-rows").innerHTML = "";
@@ -653,6 +662,7 @@
         pararTerminal();
         document.getElementById("loading").classList.remove("visible");
         document.getElementById("atk-btn").disabled = false;
+        estaAtacando = false;
       }
     }
 

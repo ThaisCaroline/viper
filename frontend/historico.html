@@ -229,6 +229,14 @@
     let todosOsTestes = [];
     let selecionados = [];
 
+    async function deletarTeste(id) {
+      if (!confirm("Deletar este teste do histórico?")) return;
+      await fetch(`/api/historico/${id}`, { method: "DELETE" });
+      todosOsTestes = todosOsTestes.filter(t => t.id !== id);
+      selecionados = selecionados.filter(s => s !== id);
+      renderHistorico(todosOsTestes);
+    }
+
     async function baixarJSON(id) {
       const resp = await fetch(`/api/historico/${id}`);
       const data = await resp.json();
@@ -295,7 +303,8 @@
             <td><span class="score-badge ${scoreClass}">${score}%</span></td>
             <td onclick="event.stopPropagation()" style="white-space:nowrap">
               <button onclick="baixarJSON(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ JSON</button>
-              <button onclick="baixarPDF(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer">↓ PDF</button>
+              <button onclick="baixarPDF(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ PDF</button>
+              <button onclick="deletarTeste(${t.id})" style="background:transparent;border:1px solid #3a0a0a;border-radius:4px;padding:0.2rem 0.5rem;color:#e24b4a;font-size:0.6rem;font-family:var(--font);cursor:pointer">🗑</button>
             </td>
           </tr>`;
       }).join("");
