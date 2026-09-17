@@ -495,8 +495,7 @@
     if (tecnicoEl) tecnicoEl.textContent = tecnico;
 
     function sair() {
-      localStorage.removeItem("viper_tecnico");
-      window.location.href = "/";
+    window.location.href = "/logout";
     }
 
     let ultimoRelatorio = null;
@@ -615,7 +614,8 @@
             aceita_documento: aceitaDoc,
             formato_documento: aceitaDoc ? formatoDoc : null,
             campo_documento: aceitaDoc ? campoDoc : "file",
-            tecnico: localStorage.getItem("viper_tecnico") || "Anônimo"
+            tecnico: localStorage.getItem("viper_tecnico") || "Anônimo",
+            email_tecnico: localStorage.getItem("viper_email") || ""
           })
         });
 

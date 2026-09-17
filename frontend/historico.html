@@ -42,6 +42,16 @@
     .nav-link:hover { color: #fff; }
     .nav-link.active { color: var(--red); }
     .tecnico-badge { font-size: 0.75rem; color: #fff; }
+    .admin-badge {
+      font-size: 0.65rem;
+      background: #1a0a2a;
+      color: #a855f7;
+      border: 1px solid #3a1a5a;
+      border-radius: 4px;
+      padding: 0.15rem 0.5rem;
+      letter-spacing: 0.08rem;
+      text-transform: uppercase;
+    }
 
     .main { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
 
@@ -163,13 +173,14 @@
       <a href="/viper" class="nav-link">Atacar</a>
       <a href="/historico" class="nav-link active">Histórico</a>
       <span class="tecnico-badge" id="tecnico-badge"></span>
+      <span class="admin-badge" id="admin-badge" style="display:none">Admin</span>
       <button class="sair-btn" onclick="sair()">Sair</button>
     </div>
   </div>
 
   <div class="main">
     <div class="section-header">
-      <span class="section-title">Histórico de testes</span>
+      <span class="section-title" id="section-title">Histórico de testes</span>
       <div style="display:flex;gap:0.75rem;align-items:center">
         <input class="filtro-input" id="filtro" type="text" placeholder="Filtrar por URL ou agente..." oninput="filtrar()">
         <button class="comparar-btn" id="comparar-btn" onclick="compararSelecionados()">Comparar selecionados</button>
@@ -178,13 +189,13 @@
 
     <div id="historico-wrap">
       <table class="historico-table" id="historico-table">
-        <thead>
+        <thead id="historico-thead">
           <tr>
             <th class="check-col"></th>
             <th>Data</th>
             <th>Agente</th>
             <th>URL</th>
-            <th>Técnico</th>
+            <th id="col-tecnico" style="display:none">Técnico</th>
             <th>Vetores</th>
             <th>Vulneráveis</th>
             <th>Score</th>
@@ -216,16 +227,36 @@
 
   <script>
     const tecnico = localStorage.getItem("viper_tecnico");
+    const email   = localStorage.getItem("viper_email") || "";
     if (!tecnico) window.location.href = "/";
     document.getElementById("tecnico-badge").textContent = tecnico;
 
-    function sair() {
-      localStorage.removeItem("viper_tecnico");
-      window.location.href = "/";
-    }
-
+    let isAdmin = false;
     let todosOsTestes = [];
     let selecionados = [];
+
+    function sair() {
+    window.location.href = "/logout";
+    }
+
+    async function inicializar() {
+      // Verifica se é admin
+      try {
+        const resp = await fetch(`/api/me?email=${encodeURIComponent(email)}`);
+        const data = await resp.json();
+        isAdmin = data.admin || false;
+      } catch(e) {
+        isAdmin = false;
+      }
+
+      if (isAdmin) {
+        document.getElementById("admin-badge").style.display = "inline";
+        document.getElementById("col-tecnico").style.display = "";
+        document.getElementById("section-title").textContent = "Histórico geral de testes";
+      }
+
+      await carregarHistorico();
+    }
 
     async function deletarTeste(id) {
       if (!confirm("Deletar este teste do histórico?")) return;
@@ -270,7 +301,10 @@
 
     async function carregarHistorico() {
       try {
-        const resp = await fetch("/api/historico");
+        const url = isAdmin
+          ? `/api/historico?email=${encodeURIComponent(email)}&admin=true`
+          : `/api/historico?email=${encodeURIComponent(email)}&admin=false`;
+        const resp = await fetch(url);
         todosOsTestes = await resp.json();
         renderHistorico(todosOsTestes);
       } catch(e) {
@@ -281,8 +315,9 @@
 
     function renderHistorico(testes) {
       const tbody = document.getElementById("historico-body");
+      const colspan = isAdmin ? 9 : 8;
       if (!testes.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum teste realizado ainda.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty">Nenhum teste realizado ainda.</td></tr>`;
         return;
       }
 
@@ -291,6 +326,7 @@
         const scoreClass = score >= 20 ? "score-alto" : score >= 5 ? "score-medio" : "score-baixo";
         const ts = t.timestamp.slice(0, 19).replace("T", " ");
         const isSel = selecionados.includes(t.id);
+        const colTecnico = isAdmin ? `<td style="color:#a855f7;font-size:0.8rem">${t.tecnico}</td>` : "";
         return `
           <tr class="${isSel ? 'selected' : ''}" data-id="${t.id}">
             <td class="check-col">
@@ -301,7 +337,7 @@
             <td>${ts}</td>
             <td>${t.nome_agente}</td>
             <td style="color:#aaa;font-size:0.75rem">${t.url_agente}</td>
-            <td style="color:#fff">${t.tecnico}</td>
+            ${colTecnico}
             <td style="text-align:center">${t.total}</td>
             <td style="text-align:center">${t.vulneraveis}</td>
             <td><span class="score-badge ${scoreClass}">${score}%</span></td>
@@ -319,7 +355,7 @@
       const filtrados = todosOsTestes.filter(t =>
         t.url_agente.toLowerCase().includes(q) ||
         t.nome_agente.toLowerCase().includes(q) ||
-        t.tecnico.toLowerCase().includes(q)
+        (isAdmin && t.tecnico.toLowerCase().includes(q))
       );
       renderHistorico(filtrados);
     }
@@ -339,12 +375,11 @@
       const btn = document.getElementById("comparar-btn");
       btn.classList.toggle("visible", selecionados.length === 2);
 
-      renderHistorico(todosOsTestes.filter(t =>
-        document.getElementById("filtro").value
-          ? t.url_agente.toLowerCase().includes(document.getElementById("filtro").value.toLowerCase()) ||
-            t.nome_agente.toLowerCase().includes(document.getElementById("filtro").value.toLowerCase())
-          : true
-      ));
+      const q = document.getElementById("filtro").value.toLowerCase();
+      renderHistorico(q ? todosOsTestes.filter(t =>
+        t.url_agente.toLowerCase().includes(q) ||
+        t.nome_agente.toLowerCase().includes(q)
+      ) : todosOsTestes);
     }
 
     async function compararSelecionados() {
@@ -408,7 +443,7 @@
       document.getElementById("comparativo-box").scrollIntoView({ behavior: "smooth" });
     }
 
-    carregarHistorico();
+    inicializar();
   </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ Recebe a config do alvo, executa a bateria e devolve os resultados.
 """
 
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -16,12 +16,17 @@ from runner.logger import inicializar_banco, salvar_teste, listar_testes, buscar
 
 load_dotenv()
 
-# Inicializa o banco na subida do servidor
 inicializar_banco()
 
 app = FastAPI(title="VIPER")
 
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+ADMINS = [e.strip().lower() for e in os.getenv("VIPER_ADMINS", "").split(",") if e.strip()]
+
+
+def is_admin(email: str) -> bool:
+    return email.strip().lower() in ADMINS
 
 
 class ConfigAtaque(BaseModel):
@@ -38,6 +43,7 @@ class ConfigAtaque(BaseModel):
     formato_documento: str | None = ""
     campo_documento: str = "file"
     tecnico: str = "Anônimo"
+    email_tecnico: str = ""
 
 
 @app.get("/")
@@ -60,6 +66,11 @@ def favicon():
     return FileResponse("frontend/favicon.ico")
 
 
+@app.get("/api/me")
+def api_me(email: str = Query("")):
+    return {"admin": is_admin(email)}
+
+
 @app.post("/atacar")
 def atacar(config: ConfigAtaque):
     if config.ambiente.lower() in ["prd", "prod", "production"]:
@@ -76,17 +87,15 @@ def atacar(config: ConfigAtaque):
         "usar_ia_contextual": config.usar_ia_contextual,
         "aceita_documento":   config.aceita_documento,
         "formato_documento":  config.formato_documento,
-        "campo_documento": config.campo_documento,
+        "campo_documento":    config.campo_documento,
     }
 
     resultados = executar_bateria(config_dict)
     relatorio  = gerar_relatorio(resultados, alvo=config.nome)
 
-    # Adiciona URL e técnico ao relatório antes de salvar
     relatorio["url_agente"] = config.url
-    salvar_teste(relatorio, tecnico=config.tecnico)
+    salvar_teste(relatorio, tecnico=config.tecnico, email_tecnico=config.email_tecnico)
 
-    # Lê o HTML gerado e inclui no retorno pra o front usar no botão PDF
     html_path = relatorio.get("html_path", "")
     if html_path and os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
@@ -96,8 +105,10 @@ def atacar(config: ConfigAtaque):
 
 
 @app.get("/api/historico")
-def api_historico():
-    return listar_testes()
+def api_historico(email: str = Query(""), admin: bool = Query(False)):
+    if admin and is_admin(email):
+        return listar_testes()
+    return listar_testes(email_tecnico=email)
 
 
 @app.delete("/api/historico/{teste_id}")
@@ -131,3 +142,7 @@ def api_teste(teste_id: int):
 @app.get("/api/comparativo/{id1}/{id2}")
 def api_comparativo(id1: int, id2: int):
     return comparar_testes(id1, id2)
+
+@app.get("/logout")
+def logout():
+    return FileResponse("frontend/logout.html")

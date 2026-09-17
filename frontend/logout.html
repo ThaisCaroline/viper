@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>VIPER — Saindo...</title>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
+  <style>
+    body { background: #0d0d0d; color: #aaa; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <span>Encerrando sessão...</span>
+  <script>
+    (async () => {
+      const msalConfig = {
+        auth: {
+          clientId: "4a689be0-80a1-43f0-a183-062915598dac",
+          authority: "https://login.microsoftonline.com/f10f91e5-f905-48aa-8c4c-a68d0ae5f6ec",
+          redirectUri: "http://localhost:8001/viper"
+        },
+        cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false }
+      };
+
+      const msalInstance = new msal.PublicClientApplication(msalConfig);
+      await msalInstance.initialize();
+
+      localStorage.clear();
+
+      const contas = msalInstance.getAllAccounts();
+      if (contas.length > 0) {
+        await msalInstance.logoutRedirect({
+          account: contas[0],
+          postLogoutRedirectUri: "http://localhost:8001/"
+        });
+      } else {
+        window.location.href = "/";
+      }
+    })();
+  </script>
+</body>
+</html>

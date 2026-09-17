@@ -6,7 +6,6 @@ Salva e consulta histórico de testes no SQLite.
 import json
 import os
 import sqlite3
-import os
 from datetime import datetime
 
 DB_PATH = os.getenv("VIPER_DB_PATH", "/app/data/viper.db")
@@ -20,39 +19,47 @@ def _conectar():
 
 
 def inicializar_banco():
-    """Cria as tabelas se não existirem."""
+    """Cria as tabelas se não existirem e aplica migrações."""
     conn = _conectar()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS testes (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp   TEXT NOT NULL,
-            url_agente  TEXT NOT NULL,
-            nome_agente TEXT NOT NULL,
-            tecnico     TEXT NOT NULL,
-            total       INTEGER NOT NULL,
-            vulneraveis INTEGER NOT NULL,
-            resistiu    INTEGER NOT NULL,
-            score       REAL NOT NULL,
-            resultados  TEXT NOT NULL,
-            html_path   TEXT DEFAULT ''
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp       TEXT NOT NULL,
+            url_agente      TEXT NOT NULL,
+            nome_agente     TEXT NOT NULL,
+            tecnico         TEXT NOT NULL,
+            email_tecnico   TEXT NOT NULL DEFAULT '',
+            total           INTEGER NOT NULL,
+            vulneraveis     INTEGER NOT NULL,
+            resistiu        INTEGER NOT NULL,
+            score           REAL NOT NULL,
+            resultados      TEXT NOT NULL,
+            html_path       TEXT DEFAULT ''
         )
     """)
+
+    # Migração: adiciona email_tecnico se banco antigo não tiver
+    colunas = [r[1] for r in conn.execute("PRAGMA table_info(testes)").fetchall()]
+    if "email_tecnico" not in colunas:
+        conn.execute("ALTER TABLE testes ADD COLUMN email_tecnico TEXT NOT NULL DEFAULT ''")
+
     conn.commit()
     conn.close()
 
 
-def salvar_teste(relatorio: dict, tecnico: str):
+def salvar_teste(relatorio: dict, tecnico: str, email_tecnico: str = ""):
     """Salva um teste no banco."""
     conn = _conectar()
     conn.execute("""
         INSERT INTO testes
-            (timestamp, url_agente, nome_agente, tecnico, total, vulneraveis, resistiu, score, resultados, html_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (timestamp, url_agente, nome_agente, tecnico, email_tecnico, total, vulneraveis, resistiu, score, resultados, html_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         relatorio.get("timestamp", datetime.now().isoformat()),
         relatorio.get("url_agente", ""),
         relatorio.get("alvo", ""),
         tecnico,
+        email_tecnico,
         relatorio.get("total", 0),
         relatorio.get("vulneraveis", 0),
         relatorio.get("resistiu", 0),
@@ -64,14 +71,22 @@ def salvar_teste(relatorio: dict, tecnico: str):
     conn.close()
 
 
-def listar_testes() -> list:
-    """Retorna todos os testes ordenados por data desc, sem resultados detalhados."""
+def listar_testes(email_tecnico: str = None) -> list:
+    """Retorna testes ordenados por data desc. Se email informado, filtra só os desse técnico."""
     conn = _conectar()
-    rows = conn.execute("""
-        SELECT id, timestamp, url_agente, nome_agente, tecnico, total, vulneraveis, resistiu, score
-        FROM testes
-        ORDER BY timestamp DESC
-    """).fetchall()
+    if email_tecnico:
+        rows = conn.execute("""
+            SELECT id, timestamp, url_agente, nome_agente, tecnico, email_tecnico, total, vulneraveis, resistiu, score
+            FROM testes
+            WHERE email_tecnico = ?
+            ORDER BY timestamp DESC
+        """, (email_tecnico,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT id, timestamp, url_agente, nome_agente, tecnico, email_tecnico, total, vulneraveis, resistiu, score
+            FROM testes
+            ORDER BY timestamp DESC
+        """).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -107,17 +122,13 @@ def deletar_teste(teste_id: int):
 
 
 def comparar_testes(id1: int, id2: int) -> dict:
-    """
-    Compara dois testes do mesmo agente.
-    Retorna delta por vetor: melhorou / piorou / igual / novo / removido.
-    """
+    """Compara dois testes do mesmo agente. Retorna delta por vetor."""
     t1 = buscar_teste(id1)
     t2 = buscar_teste(id2)
 
     if not t1 or not t2:
         return {"erro": "Teste não encontrado"}
 
-    # Mapeia resultados por descrição
     def mapear(resultados):
         return {r["descricao"]: r for r in resultados}
 
@@ -144,8 +155,8 @@ def comparar_testes(id1: int, id2: int) -> dict:
             status = "novo"
 
         delta.append({
-            "descricao":  desc,
-            "status":     status,
+            "descricao":   desc,
+            "status":      status,
             "teste1_vuln": v1["sucesso_ataque"] if v1 else None,
             "teste2_vuln": v2["sucesso_ataque"] if v2 else None,
         })
