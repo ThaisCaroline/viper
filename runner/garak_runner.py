@@ -31,7 +31,7 @@ def executar_garak(config_dict: dict) -> list:
     token          = config_dict.get("token", "")
     nome           = config_dict.get("nome", "Agente")
 
-    campo_mensagem = _extrair_campo(json_input, "message")
+    campo_mensagem = config_dict.get("campo_ataque") or _extrair_campo(json_input, "message")
 
     print(f"\n[GARAK] Iniciando — campo entrada: '{campo_mensagem}'")
 
@@ -40,7 +40,6 @@ def executar_garak(config_dict: dict) -> list:
         "garak.probes.dan",
         "garak.probes.misleading",
         "garak.probes.promptinject",
-        "garak.probes.latentinjection",
         "garak.probes.encoding",
     ]
 
