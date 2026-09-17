@@ -243,7 +243,9 @@
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `viper_teste_${id}.json`;
+      const nomeAgente = (data.nome_agente || "agente").replace(/\s+/g, "_");
+      const dataTs = data.timestamp.slice(0,10);
+      a.download = `VIPER_${nomeAgente}_${dataTs}.json`;
       a.click();
     }
 
@@ -252,13 +254,18 @@
       const data = await resp.json();
       if (!data.html_path) { alert("Relatório HTML não disponível para este teste."); return; }
       // Busca o HTML do relatório e abre pra impressão
+      const nomeAgente = (data.nome_agente || "agente").replace(/\s+/g, "_");
+      const dataTs = data.timestamp.slice(0,10);
       const respHtml = await fetch(`/api/historico/${id}/html`);
       if (respHtml.ok) {
         const html = await respHtml.text();
         const w = window.open("", "_blank");
         w.document.write(html);
         w.document.close();
-        w.onload = () => w.print();
+        w.onload = () => {
+          w.document.title = `VIPER_Relatorio_${nomeAgente}_${dataTs}`;
+          w.print();
+        };
       } else {
         alert("Relatório PDF não disponível para este teste.");
       }

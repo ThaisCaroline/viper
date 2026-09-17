@@ -671,7 +671,9 @@
       const blob = new Blob([JSON.stringify(ultimoRelatorio, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `viper_relatorio_${new Date().toISOString().slice(0,19).replace(/:/g,"-")}.json`;
+      const nomeAgente = (ultimoRelatorio.alvo || "agente").replace(/\s+/g, "_");
+      const dataTs = ultimoRelatorio.timestamp.slice(0,10);
+      a.download = `VIPER_${nomeAgente}_${dataTs}.json`;
       a.click();
     }
 
@@ -680,7 +682,12 @@
       const w = window.open("", "_blank");
       w.document.write(ultimoRelatorio.relatorio_html);
       w.document.close();
-      w.onload = () => { w.print(); };
+      w.onload = () => {
+        const nomeAgente = (ultimoRelatorio.alvo || "agente").replace(/\s+/g, "_");
+        const dataTs = ultimoRelatorio.timestamp.slice(0,10);
+        w.document.title = `VIPER_Relatorio_${nomeAgente}_${dataTs}`;
+        w.print();
+      };
     }
   </script>
 </body>
