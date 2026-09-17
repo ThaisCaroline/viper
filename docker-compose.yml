@@ -5,3 +5,6 @@ services:
       - "8001:8000"
     volumes:
       - ./results:/app/results
+      - ./data:/app/data
+    env_file:
+      - .env

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIPER — Histórico</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --sidebar-bg: #0b0b16;
+      --card: #0d0d18;
+      --border: #1e1e2e;
+      --input-bg: #111122;
+      --input-border: #2a2a3e;
+      --red: #e24b4a;
+      --green: #4a9e4a;
+      --blue: #4a6ae2;
+      --yellow: #e2a44a;
+      --font: 'Segoe UI', Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: #fff; font-family: var(--font); min-height: 100vh; display: flex; flex-direction: column; }
+
+    .topbar {
+      background: #0d0d18;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .dots { display: flex; gap: 0.4rem; }
+    .dot { width: 0.65rem; height: 0.65rem; border-radius: 50%; }
+    .logo { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.2rem; margin-left: 0.5rem; }
+    .logo span { color: var(--red); }
+    .nav-links { margin-left: auto; display: flex; gap: 1rem; align-items: center; }
+    .nav-link { font-size: 0.65rem; color: #888; letter-spacing: 0.1rem; text-decoration: none; text-transform: uppercase; }
+    .nav-link:hover { color: #fff; }
+    .nav-link.active { color: var(--red); }
+    .tecnico-badge { font-size: 0.65rem; color: #555; }
+
+    .main { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title { font-size: 0.6rem; letter-spacing: 0.15rem; color: #888; text-transform: uppercase; }
+
+    .filtro-input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      padding: 0.4rem 0.65rem;
+      color: #fff;
+      font-size: 0.7rem;
+      font-family: var(--font);
+      outline: none;
+      width: 260px;
+    }
+    .filtro-input::placeholder { color: #444; font-style: italic; }
+
+    .comparar-btn {
+      background: var(--blue);
+      border: none;
+      border-radius: 6px;
+      padding: 0.4rem 0.85rem;
+      color: #fff;
+      font-size: 0.7rem;
+      font-family: var(--font);
+      cursor: pointer;
+      display: none;
+    }
+    .comparar-btn.visible { display: block; }
+
+    /* Tabela de histórico */
+    .historico-table { width: 100%; border-collapse: collapse; }
+    .historico-table th {
+      font-size: 0.58rem;
+      color: #555;
+      letter-spacing: 0.1rem;
+      text-transform: uppercase;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .historico-table td { padding: 0.65rem 0.75rem; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+    .historico-table tr:hover td { background: #0d0d20; cursor: pointer; }
+    .historico-table tr.selected td { background: #0a0a1a; border-left: 3px solid var(--blue); }
+
+    .score-badge { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 3px; }
+    .score-alto { background: #1a0505; color: var(--red); border: 1px solid #3a0a0a; }
+    .score-medio { background: #1a1205; color: var(--yellow); border: 1px solid #3a2a0a; }
+    .score-baixo { background: #051a05; color: var(--green); border: 1px solid #0a3a0a; }
+
+    .check-col { width: 2rem; }
+    .check-col input { accent-color: var(--blue); cursor: pointer; }
+
+    /* Comparativo */
+    .comparativo-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: none;
+    }
+    .comparativo-box.visible { display: block; }
+
+    .comp-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .comp-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 0.7rem;
+    }
+    .comp-card .label { color: #555; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1rem; margin-bottom: 0.25rem; }
+    .comp-card .val { color: #fff; }
+
+    .delta-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    .delta-table th { font-size: 0.58rem; color: #555; letter-spacing: 0.08rem; text-transform: uppercase; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .delta-table td { padding: 0.55rem 0.75rem; font-size: 0.72rem; border-bottom: 1px solid #111; }
+
+    .delta-melhorou { color: var(--green); }
+    .delta-piorou   { color: var(--red); }
+    .delta-igual    { color: #555; }
+    .delta-novo     { color: var(--blue); }
+    .delta-removido { color: #444; text-decoration: line-through; }
+
+    .empty { color: #444; font-size: 0.75rem; text-align: center; padding: 2rem; }
+
+    .sair-btn {
+      background: transparent;
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      color: #555;
+      font-size: 0.6rem;
+      font-family: var(--font);
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+    .sair-btn:hover { color: var(--red); border-color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="dots">
+      <div class="dot" style="background:#e24b4a"></div>
+      <div class="dot" style="background:#e2a44a"></div>
+      <div class="dot" style="background:#4a9e4a"></div>
+    </div>
+    <div class="logo"><span>VIPER</span></div>
+    <div class="nav-links">
+      <a href="/viper" class="nav-link">Atacar</a>
+      <a href="/historico" class="nav-link active">Histórico</a>
+      <span class="tecnico-badge" id="tecnico-badge"></span>
+      <button class="sair-btn" onclick="sair()">Sair</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="section-header">
+      <span class="section-title">Histórico de testes</span>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <input class="filtro-input" id="filtro" type="text" placeholder="Filtrar por URL ou agente..." oninput="filtrar()">
+        <button class="comparar-btn" id="comparar-btn" onclick="compararSelecionados()">Comparar selecionados</button>
+      </div>
+    </div>
+
+    <div id="historico-wrap">
+      <table class="historico-table" id="historico-table">
+        <thead>
+          <tr>
+            <th class="check-col"></th>
+            <th>Data</th>
+            <th>Agente</th>
+            <th>URL</th>
+            <th>Técnico</th>
+            <th>Vetores</th>
+            <th>Vulneráveis</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="historico-body">
+          <tr><td colspan="8" class="empty">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="comparativo-box" id="comparativo-box">
+      <div class="section-title" style="margin-bottom:1rem">Comparativo</div>
+      <div class="comp-header" id="comp-header"></div>
+      <table class="delta-table">
+        <thead>
+          <tr>
+            <th>Vetor</th>
+            <th>Teste 1</th>
+            <th>Teste 2</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="delta-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Verifica sessão
+    const tecnico = localStorage.getItem("viper_tecnico");
+    if (!tecnico) window.location.href = "/";
+    document.getElementById("tecnico-badge").textContent = tecnico;
+
+    function sair() {
+      localStorage.removeItem("viper_tecnico");
+      window.location.href = "/";
+    }
+
+    let todosOsTestes = [];
+    let selecionados = [];
+
+    async function carregarHistorico() {
+      try {
+        const resp = await fetch("/api/historico");
+        todosOsTestes = await resp.json();
+        renderHistorico(todosOsTestes);
+      } catch(e) {
+        document.getElementById("historico-body").innerHTML =
+          '<tr><td colspan="8" class="empty">Erro ao carregar histórico.</td></tr>';
+      }
+    }
+
+    function renderHistorico(testes) {
+      const tbody = document.getElementById("historico-body");
+      if (!testes.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum teste realizado ainda.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = testes.map(t => {
+        const score = t.score;
+        const scoreClass = score >= 20 ? "score-alto" : score >= 5 ? "score-medio" : "score-baixo";
+        const ts = t.timestamp.slice(0, 19).replace("T", " ");
+        const isSel = selecionados.includes(t.id);
+        return `
+          <tr class="${isSel ? 'selected' : ''}" data-id="${t.id}">
+            <td class="check-col">
+              <input type="checkbox" ${isSel ? 'checked' : ''}
+                onchange="toggleSelecionado(${t.id}, this.checked)"
+                onclick="event.stopPropagation()">
+            </td>
+            <td>${ts}</td>
+            <td>${t.nome_agente}</td>
+            <td style="color:#888;font-size:0.65rem">${t.url_agente}</td>
+            <td style="color:#888">${t.tecnico}</td>
+            <td style="text-align:center">${t.total}</td>
+            <td style="text-align:center">${t.vulneraveis}</td>
+            <td><span class="score-badge ${scoreClass}">${score}%</span></td>
+          </tr>`;
+      }).join("");
+    }
+
+    function filtrar() {
+      const q = document.getElementById("filtro").value.toLowerCase();
+      const filtrados = todosOsTestes.filter(t =>
+        t.url_agente.toLowerCase().includes(q) ||
+        t.nome_agente.toLowerCase().includes(q) ||
+        t.tecnico.toLowerCase().includes(q)
+      );
+      renderHistorico(filtrados);
+    }
+
+    function toggleSelecionado(id, checked) {
+      if (checked) {
+        if (!selecionados.includes(id)) selecionados.push(id);
+      } else {
+        selecionados = selecionados.filter(s => s !== id);
+      }
+
+      // Limita a 2 selecionados
+      if (selecionados.length > 2) {
+        const removido = selecionados.shift();
+        renderHistorico(todosOsTestes);
+      }
+
+      const btn = document.getElementById("comparar-btn");
+      btn.classList.toggle("visible", selecionados.length === 2);
+
+      renderHistorico(todosOsTestes.filter(t =>
+        document.getElementById("filtro").value
+          ? t.url_agente.toLowerCase().includes(document.getElementById("filtro").value.toLowerCase()) ||
+            t.nome_agente.toLowerCase().includes(document.getElementById("filtro").value.toLowerCase())
+          : true
+      ));
+    }
+
+    async function compararSelecionados() {
+      if (selecionados.length !== 2) return;
+      const [id1, id2] = selecionados;
+
+      try {
+        const resp = await fetch(`/api/comparativo/${id1}/${id2}`);
+        const data = await resp.json();
+        renderComparativo(data);
+      } catch(e) {
+        alert("Erro ao carregar comparativo.");
+      }
+    }
+
+    function renderComparativo(data) {
+      if (data.erro) { alert(data.erro); return; }
+
+      const t1 = data.teste1;
+      const t2 = data.teste2;
+
+      document.getElementById("comp-header").innerHTML = `
+        <div class="comp-card">
+          <div class="label">Teste 1</div>
+          <div class="val">${t1.timestamp.slice(0,19).replace("T"," ")}</div>
+          <div style="color:#888;font-size:0.65rem;margin-top:0.25rem">${t1.tecnico} · ${t1.vulneraveis} vulneráveis · ${t1.score}%</div>
+        </div>
+        <div class="comp-card" style="text-align:center;display:flex;align-items:center;justify-content:center">
+          <div>
+            <div style="font-size:1.5rem">${t2.vulneraveis - t1.vulneraveis > 0 ? '↑' : t2.vulneraveis - t1.vulneraveis < 0 ? '↓' : '='}</div>
+            <div style="font-size:0.65rem;color:#555;margin-top:0.25rem">${Math.abs(t2.vulneraveis - t1.vulneraveis)} vulneráveis</div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="label">Teste 2</div>
+          <div class="val">${t2.timestamp.slice(0,19).replace("T"," ")}</div>
+          <div style="color:#888;font-size:0.65rem;margin-top:0.25rem">${t2.tecnico} · ${t2.vulneraveis} vulneráveis · ${t2.score}%</div>
+        </div>`;
+
+      const statusMap = {
+        melhorou: { label: '✅ corrigido',  cls: 'delta-melhorou' },
+        piorou:   { label: '🔴 regrediu',   cls: 'delta-piorou' },
+        igual:    { label: '— igual',        cls: 'delta-igual' },
+        novo:     { label: '🆕 novo',        cls: 'delta-novo' },
+        removido: { label: '— removido',     cls: 'delta-removido' },
+      };
+
+      document.getElementById("delta-body").innerHTML = data.delta.map(d => {
+        const s = statusMap[d.status] || { label: d.status, cls: '' };
+        const v1 = d.teste1_vuln === null ? '—' : d.teste1_vuln ? '🔴' : '🟢';
+        const v2 = d.teste2_vuln === null ? '—' : d.teste2_vuln ? '🔴' : '🟢';
+        return `
+          <tr>
+            <td>${d.descricao}</td>
+            <td style="text-align:center">${v1}</td>
+            <td style="text-align:center">${v2}</td>
+            <td class="${s.cls}">${s.label}</td>
+          </tr>`;
+      }).join("");
+
+      document.getElementById("comparativo-box").classList.add("visible");
+      document.getElementById("comparativo-box").scrollIntoView({ behavior: "smooth" });
+    }
+
+    carregarHistorico();
+  </script>
+</body>
+</html>

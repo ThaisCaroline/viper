@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIPER — Login</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --card: #0d0d18;
+      --border: #1e1e2e;
+      --input-bg: #111122;
+      --input-border: #2a2a3e;
+      --red: #e24b4a;
+      --green: #4a9e4a;
+      --font: 'Segoe UI', Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: #fff;
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .logo {
+      text-align: center;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: 0.3rem;
+    }
+    .logo-title span { color: var(--red); }
+    .logo-sub {
+      font-size: 0.6rem;
+      color: #555;
+      letter-spacing: 0.1rem;
+      margin-top: 0.35rem;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .field { display: flex; flex-direction: column; gap: 0.4rem; }
+    .field label { font-size: 0.65rem; color: #888; letter-spacing: 0.1rem; text-transform: uppercase; }
+    .field input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      color: #fff;
+      font-size: 0.8rem;
+      font-family: var(--font);
+      outline: none;
+      width: 100%;
+    }
+    .field input::placeholder { color: #444; font-style: italic; }
+    .field input:focus { border-color: var(--red); }
+
+    .btn-entrar {
+      background: var(--red);
+      border: none;
+      border-radius: 6px;
+      padding: 0.75rem;
+      color: #fff;
+      font-size: 0.8rem;
+      font-family: var(--font);
+      letter-spacing: 0.1rem;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 500;
+    }
+    .btn-entrar:hover { background: #c93f3e; }
+
+    .btn-microsoft {
+      background: transparent;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      padding: 0.7rem;
+      color: #888;
+      font-size: 0.75rem;
+      font-family: var(--font);
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-microsoft:hover { border-color: #555; color: #aaa; }
+
+    .dev-badge {
+      text-align: center;
+      font-size: 0.58rem;
+      color: #333;
+      letter-spacing: 0.05rem;
+    }
+
+    .erro {
+      font-size: 0.7rem;
+      color: var(--red);
+      text-align: center;
+      display: none;
+    }
+    .erro.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-title">🐍 <span>VIPER</span></div>
+      <div class="logo-sub">vulnerability injection & penetration evaluation for ai resilience</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <label>Nome do técnico</label>
+      <input id="nome" type="text" placeholder="Ex: Fábio Souza" autocomplete="name">
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <button class="btn-entrar" onclick="entrar()">▶ ENTRAR</button>
+      <button class="btn-microsoft" onclick="entrarMicrosoft()">
+        <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
+          <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+          <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+          <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Entrar com SSO
+      </button>
+    </div>
+
+    <div class="erro" id="erro">Informe seu nome para continuar.</div>
+    <div class="dev-badge">modo dev · autenticação SSO desativada</div>
+  </div>
+
+  <script>
+    // Verifica se já tem sessão ativa
+    const tecnico = localStorage.getItem("viper_tecnico");
+    if (tecnico) {
+      window.location.href = "/viper";
+    }
+
+    function entrar() {
+      const nome = document.getElementById("nome").value.trim();
+      if (!nome) {
+        document.getElementById("erro").classList.add("visible");
+        return;
+      }
+      localStorage.setItem("viper_tecnico", nome);
+      window.location.href = "/viper";
+    }
+
+    function entrarMicrosoft() {
+      // Em produção: iniciar fluxo OAuth com EntraID via MSAL
+      // Em dev: bypass — usa nome digitado ou "SSO Dev"
+      const nome = document.getElementById("nome").value.trim() || "SSO Dev";
+      localStorage.setItem("viper_tecnico", nome);
+      window.location.href = "/viper";
+    }
+
+    document.getElementById("nome").addEventListener("keydown", e => {
+      if (e.key === "Enter") entrar();
+    });
+  </script>
+</body>
+</html>
