@@ -333,6 +333,11 @@
     </div>
     <div class="logo"><span>VIPER</span></div>
     <div class="tagline">vulnerability injection & penetration evaluation for ai resilience</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:1rem">
+      <a href="/historico" style="font-size:0.65rem;color:#888;letter-spacing:0.1rem;text-decoration:none;text-transform:uppercase">Histórico</a>
+      <span id="tecnico-topbar" style="font-size:0.65rem;color:#555"></span>
+      <button onclick="sair()" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.55rem;color:#555;font-size:0.6rem;font-family:var(--font);cursor:pointer">Sair</button>
+    </div>
   </div>
 
   <div class="body">
@@ -477,6 +482,16 @@
   </div>
 
   <script>
+    const tecnico = localStorage.getItem("viper_tecnico");
+    if (!tecnico) window.location.href = "/";
+    const tecnicoEl = document.getElementById("tecnico-topbar");
+    if (tecnicoEl) tecnicoEl.textContent = tecnico;
+
+    function sair() {
+      localStorage.removeItem("viper_tecnico");
+      window.location.href = "/";
+    }
+
     let ultimoRelatorio = null;
     let termInterval = null;
 
@@ -583,7 +598,8 @@
             dados_proteger: dadosProteger ? dadosProteger.split("\n").map(m => m.trim()).filter(Boolean) : [],
             usar_ia_contextual: usarIa,
             aceita_documento: aceitaDoc,
-            formato_documento: aceitaDoc ? formatoDoc : null
+            formato_documento: aceitaDoc ? formatoDoc : null,
+            tecnico: localStorage.getItem("viper_tecnico") || "Anônimo"
           })
         });
 
