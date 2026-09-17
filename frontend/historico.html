@@ -38,10 +38,10 @@
     .logo { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.2rem; margin-left: 0.5rem; }
     .logo span { color: var(--red); }
     .nav-links { margin-left: auto; display: flex; gap: 1rem; align-items: center; }
-    .nav-link { font-size: 0.65rem; color: #888; letter-spacing: 0.1rem; text-decoration: none; text-transform: uppercase; }
+    .nav-link { font-size: 0.75rem; color: #aaa; letter-spacing: 0.1rem; text-decoration: none; text-transform: uppercase; }
     .nav-link:hover { color: #fff; }
     .nav-link.active { color: var(--red); }
-    .tecnico-badge { font-size: 0.65rem; color: #555; }
+    .tecnico-badge { font-size: 0.75rem; color: #fff; }
 
     .main { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
 
@@ -50,7 +50,7 @@
       align-items: center;
       justify-content: space-between;
     }
-    .section-title { font-size: 0.6rem; letter-spacing: 0.15rem; color: #888; text-transform: uppercase; }
+    .section-title { font-size: 0.75rem; letter-spacing: 0.15rem; color: #fff; text-transform: uppercase; }
 
     .filtro-input {
       background: var(--input-bg);
@@ -58,12 +58,12 @@
       border-radius: 6px;
       padding: 0.4rem 0.65rem;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       font-family: var(--font);
       outline: none;
       width: 260px;
     }
-    .filtro-input::placeholder { color: #444; font-style: italic; }
+    .filtro-input::placeholder { color: #888; font-style: italic; }
 
     .comparar-btn {
       background: var(--blue);
@@ -71,29 +71,28 @@
       border-radius: 6px;
       padding: 0.4rem 0.85rem;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-family: var(--font);
       cursor: pointer;
       display: none;
     }
     .comparar-btn.visible { display: block; }
 
-    /* Tabela de histórico */
     .historico-table { width: 100%; border-collapse: collapse; }
     .historico-table th {
-      font-size: 0.58rem;
-      color: #555;
+      font-size: 0.7rem;
+      color: #fff;
       letter-spacing: 0.1rem;
       text-transform: uppercase;
-      padding: 0.5rem 0.75rem;
+      padding: 0.65rem 0.75rem;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
-    .historico-table td { padding: 0.65rem 0.75rem; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+    .historico-table td { padding: 0.75rem 0.75rem; font-size: 0.85rem; color: #fff; border-bottom: 1px solid var(--border); }
     .historico-table tr:hover td { background: #0d0d20; cursor: pointer; }
     .historico-table tr.selected td { background: #0a0a1a; border-left: 3px solid var(--blue); }
 
-    .score-badge { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 3px; }
+    .score-badge { font-size: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 3px; }
     .score-alto { background: #1a0505; color: var(--red); border: 1px solid #3a0a0a; }
     .score-medio { background: #1a1205; color: var(--yellow); border: 1px solid #3a2a0a; }
     .score-baixo { background: #051a05; color: var(--green); border: 1px solid #0a3a0a; }
@@ -101,7 +100,6 @@
     .check-col { width: 2rem; }
     .check-col input { accent-color: var(--blue); cursor: pointer; }
 
-    /* Comparativo */
     .comparativo-box {
       background: var(--card);
       border: 1px solid var(--border);
@@ -122,30 +120,30 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 0.75rem;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
     }
-    .comp-card .label { color: #555; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1rem; margin-bottom: 0.25rem; }
+    .comp-card .label { color: #aaa; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1rem; margin-bottom: 0.25rem; }
     .comp-card .val { color: #fff; }
 
     .delta-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
-    .delta-table th { font-size: 0.58rem; color: #555; letter-spacing: 0.08rem; text-transform: uppercase; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
-    .delta-table td { padding: 0.55rem 0.75rem; font-size: 0.72rem; border-bottom: 1px solid #111; }
+    .delta-table th { font-size: 0.7rem; color: #fff; letter-spacing: 0.08rem; text-transform: uppercase; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .delta-table td { padding: 0.55rem 0.75rem; font-size: 0.8rem; border-bottom: 1px solid #111; color: #fff; }
 
     .delta-melhorou { color: var(--green); }
     .delta-piorou   { color: var(--red); }
-    .delta-igual    { color: #555; }
+    .delta-igual    { color: #888; }
     .delta-novo     { color: var(--blue); }
-    .delta-removido { color: #444; text-decoration: line-through; }
+    .delta-removido { color: #666; text-decoration: line-through; }
 
-    .empty { color: #444; font-size: 0.75rem; text-align: center; padding: 2rem; }
+    .empty { color: #888; font-size: 0.85rem; text-align: center; padding: 2rem; }
 
     .sair-btn {
       background: transparent;
       border: 1px solid var(--input-border);
       border-radius: 4px;
       padding: 0.25rem 0.6rem;
-      color: #555;
-      font-size: 0.6rem;
+      color: #aaa;
+      font-size: 0.7rem;
       font-family: var(--font);
       cursor: pointer;
       margin-left: 0.5rem;
@@ -217,7 +215,6 @@
   </div>
 
   <script>
-    // Verifica sessão
     const tecnico = localStorage.getItem("viper_tecnico");
     if (!tecnico) window.location.href = "/";
     document.getElementById("tecnico-badge").textContent = tecnico;
@@ -254,7 +251,6 @@
       const resp = await fetch(`/api/historico/${id}`);
       const data = await resp.json();
       if (!data.html_path) { alert("Relatório HTML não disponível para este teste."); return; }
-      // Busca o HTML do relatório e abre pra impressão
       const nomeAgente = (data.nome_agente || "agente").replace(/\s+/g, "_");
       const dataTs = data.timestamp.slice(0,10);
       const respHtml = await fetch(`/api/historico/${id}/html`);
@@ -304,15 +300,15 @@
             </td>
             <td>${ts}</td>
             <td>${t.nome_agente}</td>
-            <td style="color:#888;font-size:0.65rem">${t.url_agente}</td>
-            <td style="color:#888">${t.tecnico}</td>
+            <td style="color:#aaa;font-size:0.75rem">${t.url_agente}</td>
+            <td style="color:#fff">${t.tecnico}</td>
             <td style="text-align:center">${t.total}</td>
             <td style="text-align:center">${t.vulneraveis}</td>
             <td><span class="score-badge ${scoreClass}">${score}%</span></td>
             <td onclick="event.stopPropagation()" style="white-space:nowrap">
-              <button onclick="baixarJSON(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ JSON</button>
-              <button onclick="baixarPDF(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ PDF</button>
-              <button onclick="deletarTeste(${t.id})" style="background:transparent;border:1px solid #3a0a0a;border-radius:4px;padding:0.2rem 0.5rem;color:#e24b4a;font-size:0.6rem;font-family:var(--font);cursor:pointer">🗑</button>
+              <button onclick="baixarJSON(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.25rem 0.6rem;color:#fff;font-size:0.7rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ JSON</button>
+              <button onclick="baixarPDF(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.25rem 0.6rem;color:#fff;font-size:0.7rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ PDF</button>
+              <button onclick="deletarTeste(${t.id})" style="background:transparent;border:1px solid #3a0a0a;border-radius:4px;padding:0.25rem 0.6rem;color:#e24b4a;font-size:0.7rem;font-family:var(--font);cursor:pointer">🗑</button>
             </td>
           </tr>`;
       }).join("");
@@ -335,9 +331,8 @@
         selecionados = selecionados.filter(s => s !== id);
       }
 
-      // Limita a 2 selecionados
       if (selecionados.length > 2) {
-        const removido = selecionados.shift();
+        selecionados.shift();
         renderHistorico(todosOsTestes);
       }
 
@@ -355,7 +350,6 @@
     async function compararSelecionados() {
       if (selecionados.length !== 2) return;
       const [id1, id2] = selecionados;
-
       try {
         const resp = await fetch(`/api/comparativo/${id1}/${id2}`);
         const data = await resp.json();
@@ -375,18 +369,18 @@
         <div class="comp-card">
           <div class="label">Teste 1</div>
           <div class="val">${t1.timestamp.slice(0,19).replace("T"," ")}</div>
-          <div style="color:#888;font-size:0.65rem;margin-top:0.25rem">${t1.tecnico} · ${t1.vulneraveis} vulneráveis · ${t1.score}%</div>
+          <div style="color:#aaa;font-size:0.7rem;margin-top:0.25rem">${t1.tecnico} · ${t1.vulneraveis} vulneráveis · ${t1.score}%</div>
         </div>
         <div class="comp-card" style="text-align:center;display:flex;align-items:center;justify-content:center">
           <div>
             <div style="font-size:1.5rem">${t2.vulneraveis - t1.vulneraveis > 0 ? '↑' : t2.vulneraveis - t1.vulneraveis < 0 ? '↓' : '='}</div>
-            <div style="font-size:0.65rem;color:#555;margin-top:0.25rem">${Math.abs(t2.vulneraveis - t1.vulneraveis)} vulneráveis</div>
+            <div style="font-size:0.7rem;color:#aaa;margin-top:0.25rem">${Math.abs(t2.vulneraveis - t1.vulneraveis)} vulneráveis</div>
           </div>
         </div>
         <div class="comp-card">
           <div class="label">Teste 2</div>
           <div class="val">${t2.timestamp.slice(0,19).replace("T"," ")}</div>
-          <div style="color:#888;font-size:0.65rem;margin-top:0.25rem">${t2.tecnico} · ${t2.vulneraveis} vulneráveis · ${t2.score}%</div>
+          <div style="color:#aaa;font-size:0.7rem;margin-top:0.25rem">${t2.tecnico} · ${t2.vulneraveis} vulneráveis · ${t2.score}%</div>
         </div>`;
 
       const statusMap = {
