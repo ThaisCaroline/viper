@@ -39,11 +39,10 @@
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
+      box-shadow: 0 0 40px rgba(226, 75, 74, 0.08);
     }
 
-    .logo {
-      text-align: center;
-    }
+    .logo { text-align: center; }
     .logo-title {
       font-size: 2rem;
       font-weight: 500;
@@ -51,16 +50,13 @@
     }
     .logo-title span { color: var(--red); }
     .logo-sub {
-      font-size: 0.6rem;
-      color: #555;
+      font-size: 0.75rem;
+      color: #888;
       letter-spacing: 0.1rem;
       margin-top: 0.35rem;
     }
 
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-    }
+    .divider { border: none; border-top: 1px solid var(--border); }
 
     .field { display: flex; flex-direction: column; gap: 0.4rem; }
     .field label { font-size: 0.65rem; color: #888; letter-spacing: 0.1rem; text-transform: uppercase; }
@@ -159,9 +155,7 @@
 
   <script>
     const tecnico = localStorage.getItem("viper_tecnico");
-    if (tecnico) {
-      window.location.href = "/viper";
-    }
+    if (tecnico) window.location.href = "/viper";
 
     function entrar() {
       const nome = document.getElementById("nome").value.trim();
