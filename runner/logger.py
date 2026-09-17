@@ -4,6 +4,7 @@ Salva e consulta histórico de testes no SQLite.
 """
 
 import json
+import os
 import sqlite3
 import os
 from datetime import datetime
@@ -88,8 +89,18 @@ def buscar_teste(teste_id: int) -> dict:
 
 
 def deletar_teste(teste_id: int):
-    """Deleta um teste do banco."""
+    """Deleta um teste do banco e os arquivos gerados."""
     conn = _conectar()
+    row = conn.execute("SELECT html_path FROM testes WHERE id = ?", (teste_id,)).fetchone()
+    if row and row["html_path"]:
+        html_path = row["html_path"]
+        json_path = html_path.replace(".html", ".json")
+        for path in [html_path, json_path]:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception:
+                pass
     conn.execute("DELETE FROM testes WHERE id = ?", (teste_id,))
     conn.commit()
     conn.close()
