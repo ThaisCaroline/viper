@@ -603,8 +603,12 @@
 
         document.getElementById("result-rows").innerHTML = data.resultados.map(r => {
           const detector = r.detector || "ia";
+          const payloadTruncado = (r.payload || "").length > 200 ? (r.payload || "").slice(0, 200) + "..." : (r.payload || "");
           const analiseHtml = r.analise_ia
             ? `<div class="detail-label">ANÁLISE DA IA</div><div class="analise-txt">${r.analise_ia}</div>`
+            : "";
+          const recHtml = r.recomendacao
+            ? `<div class="detail-label">💡 RECOMENDAÇÃO</div><div class="analise-txt" style="color:#4ae24a">${r.recomendacao}</div>`
             : "";
           return `
             <div class="result-row ${r.sucesso_ataque ? 'vuln' : 'safe'}" onclick="toggleDetail('${r.id}')">
@@ -616,10 +620,11 @@
             </div>
             <div class="result-detail" id="detail-${r.id}">
               <div class="detail-label">PAYLOAD</div>
-              <div class="detail-txt">${r.payload}</div>
+              <div class="detail-txt">${payloadTruncado}</div>
               <div class="detail-label">RESPOSTA DO AGENTE</div>
               <div class="detail-txt">${r.resposta}</div>
               ${analiseHtml}
+              ${recHtml}
             </div>
           `;
         }).join("");

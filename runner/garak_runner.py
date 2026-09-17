@@ -85,7 +85,8 @@ def executar_garak(config_dict: dict) -> list:
                             "alvo":           nome,
                             "sucesso_ataque": avaliacao["sucesso"],
                             "detector":       avaliacao["detector"],
-                            "analise_ia":     avaliacao["analise_ia"],
+                            "analise_ia":     avaliacao.get("analise_ia", ""),
+                            "recomendacao":   avaliacao.get("recomendacao", ""),
                             "resposta":       resposta,
                             "duracao_s":      duracao,
                         })
