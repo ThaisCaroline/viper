@@ -31,8 +31,7 @@ class ConfigAtaque(BaseModel):
     dados_proteger: list[str] = []
     usar_ia_contextual: bool = True
     aceita_documento: bool = False
-    formato_documento: str = ""
-
+    formato_documento: str | None = ""
 
 @app.get("/")
 def index():
