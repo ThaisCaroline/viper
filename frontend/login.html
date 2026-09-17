@@ -1,181 +1,180 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VIPER — Login</title>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>"/>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   <style>
-    :root {
-      --bg: #0a0a0f;
-      --card: #0d0d18;
-      --border: #1e1e2e;
-      --input-bg: #111122;
-      --input-border: #2a2a3e;
-      --red: #e24b4a;
-      --green: #4a9e4a;
-      --font: 'Segoe UI', Arial, sans-serif;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: clamp(15px, 1.5vw, 18px); }
     body {
-      background: var(--bg);
-      color: #fff;
-      font-family: var(--font);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d0d0d;
+      color: #ffffff;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .login-box {
-      background: var(--card);
-      border: 1px solid var(--border);
+    .login-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
       border-radius: 12px;
-      padding: 3rem 2.5rem;
-      width: 100%;
+      padding: 3rem;
       max-width: 480px;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      box-shadow: 0 0 40px rgba(226, 75, 74, 0.08);
+      width: 100%;
+      box-shadow: 0 0 40px rgba(220, 38, 38, 0.12);
+      text-align: center;
     }
 
-    .logo { text-align: center; }
-    .logo-title {
+    .logo { font-size: 3rem; margin-bottom: 0.5rem; }
+
+    .title {
       font-size: 2rem;
-      font-weight: 500;
-      letter-spacing: 0.3rem;
-    }
-    .logo-title span { color: var(--red); }
-    .logo-sub {
-      font-size: 0.75rem;
-      color: #888;
-      letter-spacing: 0.1rem;
-      margin-top: 0.35rem;
+      font-weight: 700;
+      color: #dc2626;
+      letter-spacing: 4px;
+      margin-bottom: 0.25rem;
     }
 
-    .divider { border: none; border-top: 1px solid var(--border); }
-
-    .field { display: flex; flex-direction: column; gap: 0.4rem; }
-    .field label { font-size: 0.65rem; color: #888; letter-spacing: 0.1rem; text-transform: uppercase; }
-    .field input {
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      padding: 0.6rem 0.75rem;
-      color: #fff;
-      font-size: 0.8rem;
-      font-family: var(--font);
-      outline: none;
-      width: 100%;
+    .subtitle {
+      font-size: 0.95rem;
+      color: #aaaaaa;
+      margin-bottom: 2.5rem;
+      line-height: 1.5;
     }
-    .field input::placeholder { color: #444; font-style: italic; }
-    .field input:focus { border-color: var(--red); }
 
-    .btn-entrar {
-      background: var(--red);
-      border: none;
-      border-radius: 6px;
-      padding: 0.75rem;
-      color: #fff;
-      font-size: 0.8rem;
-      font-family: var(--font);
-      letter-spacing: 0.1rem;
-      cursor: pointer;
-      width: 100%;
-      font-weight: 500;
-    }
-    .btn-entrar:hover { background: #c93f3e; }
-
-    .btn-microsoft {
-      background: transparent;
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      padding: 0.7rem;
-      color: #888;
-      font-size: 0.75rem;
-      font-family: var(--font);
-      cursor: pointer;
-      width: 100%;
+    .btn-sso {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      background: #dc2626;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: 'Segoe UI', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .btn-microsoft:hover { border-color: #555; color: #aaa; }
 
-    .dev-badge {
-      text-align: center;
-      font-size: 0.58rem;
-      color: #333;
-      letter-spacing: 0.05rem;
+    .btn-sso:hover:not(:disabled) { background: #b91c1c; }
+    .btn-sso:disabled { background: #555; cursor: not-allowed; }
+
+    .ms-icon { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .status {
+      margin-top: 1.25rem;
+      font-size: 0.9rem;
+      color: #aaaaaa;
+      min-height: 1.2em;
     }
 
-    .erro {
-      font-size: 0.7rem;
-      color: var(--red);
-      text-align: center;
-      display: none;
-    }
-    .erro.visible { display: block; }
+    .status.erro { color: #f87171; }
+    .status.ok   { color: #4ade80; }
+
+    .footer { margin-top: 2.5rem; font-size: 0.75rem; color: #555; }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <div class="logo">
-      <div class="logo-title">🐍 <span>VIPER</span></div>
-      <div class="logo-sub">vulnerability injection & penetration evaluation for ai resilience</div>
-    </div>
 
-    <hr class="divider">
+<div class="login-card">
+  <div class="logo">🐍</div>
+  <div class="title">VIPER</div>
+  <p class="subtitle">Vulnerability Injection & Penetration<br>Evaluation for AI Resilience</p>
 
-    <div class="field">
-      <label>Nome do técnico</label>
-      <input id="nome" type="text" placeholder="Ex: Fábio Souza" autocomplete="name">
-    </div>
+  <button class="btn-sso" id="btnSSO" disabled onclick="entrar()">
+    <svg class="ms-icon" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+    </svg>
+    Entrar com conta Bemol
+  </button>
 
-    <div style="display:flex;flex-direction:column;gap:0.75rem">
-      <button class="btn-entrar" onclick="entrar()">▶ ENTRAR</button>
-      <button class="btn-microsoft" onclick="entrarMicrosoft()">
-        <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
-          <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-          <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-          <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-        </svg>
-        Entrar com SSO
-      </button>
-    </div>
+  <div class="status" id="status">Carregando...</div>
 
-    <div class="erro" id="erro">Informe seu nome para continuar.</div>
-    <div class="dev-badge">modo dev · autenticação SSO desativada</div>
-  </div>
+  <div class="footer">Acesso restrito ao time de Cibersegurança · BEMOL S/A</div>
+</div>
 
-  <script>
-    const tecnico = localStorage.getItem("viper_tecnico");
-    if (tecnico) window.location.href = "/viper";
+<script>
+  const msalConfig = {
+    auth: {
+      clientId: "4a689be0-80a1-43f0-a183-062915598dac",
+      authority: "https://login.microsoftonline.com/f10f91e5-f905-48aa-8c4c-a68d0ae5f6ec",
+      redirectUri: "http://localhost:8001/viper"
+    },
+    cache: {
+      cacheLocation: "localStorage",
+      storeAuthStateInCookie: false
+    }
+  };
 
-    function entrar() {
-      const nome = document.getElementById("nome").value.trim();
-      if (!nome) {
-        document.getElementById("erro").classList.add("visible");
+  const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+  const loginRequest = { scopes: ["User.Read"] };
+
+  function setStatus(msg, tipo) {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = "status " + (tipo || "");
+  }
+
+  async function entrar() {
+    const btn = document.getElementById("btnSSO");
+    btn.disabled = true;
+    setStatus("Abrindo login Microsoft...");
+
+    try {
+      const resultado = await msalInstance.loginPopup(loginRequest);
+      const conta = resultado.account;
+
+      localStorage.setItem("viper_tecnico", conta.name || conta.username);
+      localStorage.setItem("viper_email", conta.username);
+
+      setStatus("Autenticado como " + conta.name + ". Redirecionando...", "ok");
+
+      setTimeout(() => { window.location.href = "/viper"; }, 800);
+
+    } catch (erro) {
+      console.error(erro);
+      if (erro.errorCode === "user_cancelled") {
+        setStatus("Login cancelado.", "erro");
+      } else {
+        setStatus("Erro ao autenticar: " + erro.message, "erro");
+      }
+      btn.disabled = false;
+    }
+  }
+
+  (async () => {
+    try {
+      await msalInstance.initialize();
+
+      const contas = msalInstance.getAllAccounts();
+      if (contas.length > 0) {
+        const conta = contas[0];
+        localStorage.setItem("viper_tecnico", conta.name || conta.username);
+        localStorage.setItem("viper_email", conta.username);
+        window.location.href = "/viper";
         return;
       }
-      localStorage.setItem("viper_tecnico", nome);
-      window.location.href = "/viper";
-    }
 
-    function entrarMicrosoft() {
-      const nome = document.getElementById("nome").value.trim() || "SSO Dev";
-      localStorage.setItem("viper_tecnico", nome);
-      window.location.href = "/viper";
+      document.getElementById("btnSSO").disabled = false;
+      setStatus("");
+    } catch (erro) {
+      setStatus("Erro ao inicializar: " + erro.message, "erro");
     }
+  })();
+</script>
 
-    document.getElementById("nome").addEventListener("keydown", e => {
-      if (e.key === "Enter") entrar();
-    });
-  </script>
 </body>
 </html>
