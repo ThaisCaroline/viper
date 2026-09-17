@@ -217,7 +217,6 @@ def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "
         "resistiu":    resistiu,
         "taxa_ataque": taxa_ataque,
         "resultados":  resultados_limpos,
-        "html_path":   html_path,
     }
 
     json_path = os.path.join(output_dir, f"resultado_{ts}.json")
@@ -227,6 +226,8 @@ def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "
     html_path = os.path.join(output_dir, f"resultado_{ts}.html")
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(_gerar_html(relatorio))
+
+    relatorio["html_path"] = html_path
 
     print(f"\n📄 Relatório JSON: {json_path}")
     print(f"🌐 Relatório HTML: {html_path}")
