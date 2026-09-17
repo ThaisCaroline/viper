@@ -36,6 +36,7 @@ class ConfigAtaque(BaseModel):
     usar_ia_contextual: bool = True
     aceita_documento: bool = False
     formato_documento: str | None = ""
+    campo_documento: str = "file"
     tecnico: str = "Anônimo"
 
 
@@ -75,6 +76,7 @@ def atacar(config: ConfigAtaque):
         "usar_ia_contextual": config.usar_ia_contextual,
         "aceita_documento":   config.aceita_documento,
         "formato_documento":  config.formato_documento,
+        "campo_documento": config.campo_documento,
     }
 
     resultados = executar_bateria(config_dict)

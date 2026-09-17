@@ -366,7 +366,6 @@
         <input id="nome" type="text" placeholder="Agente Atendimento">
       </div>
 
-
       <div>
         <div class="label-row">
           <span class="label">token</span>
@@ -448,6 +447,14 @@
             <option value="txt">TXT</option>
             <option value="docx">DOCX</option>
           </select>
+          <div class="label-row" style="margin-top:0.65rem">
+            <span class="label">nome do campo do documento</span>
+            <div class="tooltip-wrap">
+              <div class="tooltip-icon">?</div>
+              <div class="tooltip-box">Nome do campo multipart que o agente espera receber o arquivo.<br><br>Ex: file, document, upload, anexo</div>
+            </div>
+          </div>
+          <input id="campo-doc" type="text" placeholder="file" value="file">
         </div>
       </div>
 
@@ -563,7 +570,6 @@
     async function iniciarAtaque() {
       const url = document.getElementById("url").value.trim();
       const nome = document.getElementById("nome").value.trim() || "Agente";
-
       const token = document.getElementById("token").value.trim();
       const contexto = document.getElementById("contexto").value.trim();
       const jsonInput = document.getElementById("json-input").value.trim();
@@ -572,6 +578,7 @@
       const usarIa    = document.getElementById("usar-ia").checked;
       const aceitaDoc = document.getElementById("aceita-doc").checked;
       const formatoDoc = document.getElementById("formato-doc").value;
+      const campoDoc  = document.getElementById("campo-doc").value.trim() || "file";
 
       if (!url)      { alert("Informe a URL do agente."); return; }
       if (!contexto) { alert("Informe o contexto do agente."); return; }
@@ -599,7 +606,6 @@
             url,
             nome,
             ambiente: "lab",
-
             token,
             contexto,
             json_input: jsonInput,
@@ -608,6 +614,7 @@
             usar_ia_contextual: usarIa,
             aceita_documento: aceitaDoc,
             formato_documento: aceitaDoc ? formatoDoc : null,
+            campo_documento: aceitaDoc ? campoDoc : "file",
             tecnico: localStorage.getItem("viper_tecnico") || "Anônimo"
           })
         });

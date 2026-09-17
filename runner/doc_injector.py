@@ -29,6 +29,7 @@ def executar_injecao_documento(config_dict: dict) -> list:
     formato        = config_dict.get("formato_documento", "txt").lower()
     dados_proteger = config_dict.get("dados_proteger", [])
     token          = config_dict.get("token", "")
+    campo_doc      = config_dict.get("campo_documento", "file")
     nome           = config_dict.get("nome", "Agente")
 
     if not contexto:
@@ -50,7 +51,7 @@ def executar_injecao_documento(config_dict: dict) -> list:
     print(f"[DOC INJECTOR] Documento criado — enviando ao agente...")
 
     inicio = time.time()
-    resposta = _enviar_documento(caminho_doc, url, formato, token)
+    resposta = _enviar_documento(caminho_doc, url, formato, token, campo_doc)
     duracao  = round(time.time() - inicio, 2)
 
     try:
@@ -146,7 +147,7 @@ def _criar_arquivo(conteudo: str, formato: str) -> str:
         return ""
 
 
-def _enviar_documento(caminho: str, url: str, formato: str, token: str) -> str:
+def _enviar_documento(caminho: str, url: str, formato: str, token: str, campo_doc: str = "file") -> str:
     """Envia documento ao agente via multipart/form-data."""
     boundary = f"----VIPERBoundary{uuid.uuid4().hex}"
     mime_types = {
@@ -164,7 +165,7 @@ def _enviar_documento(caminho: str, url: str, formato: str, token: str) -> str:
 
     body = (
         f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="file"; filename="{nome_arquivo}"\r\n'
+        f'Content-Disposition: form-data; name="{campo_doc}"; filename="{nome_arquivo}"\r\n'
         f"Content-Type: {mime}\r\n\r\n"
     ).encode("utf-8") + conteudo_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
 
