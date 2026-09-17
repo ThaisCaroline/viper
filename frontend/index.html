@@ -129,6 +129,11 @@
       width: 100%;
       outline: none;
     }
+    input[type="file"] {
+      padding: 0.4rem 0.5rem;
+      color: #aaa;
+      cursor: pointer;
+    }
     input::placeholder, textarea::placeholder { color: #555566; font-style: italic; }
     textarea { resize: none; }
     select option { background: #111122; }
@@ -272,7 +277,6 @@
     .detail-txt { color: #aaa; white-space: pre-wrap; line-height: 1.5; margin-bottom: 0.75rem; }
     .analise-txt { color: var(--purple); font-style: italic; line-height: 1.5; }
 
-    /* Terminal loading */
     .loading { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 1.5rem; }
     .loading.visible { display: flex; }
     .terminal-box {
@@ -312,7 +316,6 @@
       margin-left: 2px;
     }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    .terminal-done { color: #3a6a3a; }
 
     .empty { display: flex; align-items: center; justify-content: center; flex: 1; color: #ffffff; font-size: 0.75rem; letter-spacing: 0.1rem; }
 
@@ -455,6 +458,15 @@
             </div>
           </div>
           <input id="campo-doc" type="text" placeholder="file" value="file">
+          <div class="label-row" style="margin-top:0.65rem">
+            <span class="label">documento para envenenar</span>
+            <span class="label-optional">(opcional)</span>
+            <div class="tooltip-wrap">
+              <div class="tooltip-icon">?</div>
+              <div class="tooltip-box">Envie um documento real (TXT ou DOCX). O VIPER injeta instruções maliciosas no meio do conteúdo e envia ao agente. Se não enviado, o VIPER gera um documento dummy.</div>
+            </div>
+          </div>
+          <input id="doc-upload" type="file" accept=".txt,.docx">
         </div>
       </div>
 
@@ -495,7 +507,7 @@
     if (tecnicoEl) tecnicoEl.textContent = tecnico;
 
     function sair() {
-    window.location.href = "/logout";
+      window.location.href = "/logout";
     }
 
     let ultimoRelatorio = null;
@@ -584,6 +596,22 @@
       if (!jsonInput)  { alert("Informe o JSON de input de exemplo."); return; }
       if (!jsonOutput) { alert("Informe o JSON de output de exemplo."); return; }
 
+      // Lê documento se fornecido
+      let documentoBase64 = "";
+      let documentoNome = "";
+      if (aceitaDoc) {
+        const docUpload = document.getElementById("doc-upload");
+        if (docUpload.files.length > 0) {
+          const file = docUpload.files[0];
+          documentoNome = file.name;
+          documentoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(",")[1]);
+            reader.readAsDataURL(file);
+          });
+        }
+      }
+
       document.getElementById("atk-btn").disabled = true;
       estaAtacando = true;
       document.getElementById("loading").classList.add("visible");
@@ -614,6 +642,8 @@
             aceita_documento: aceitaDoc,
             formato_documento: aceitaDoc ? formatoDoc : null,
             campo_documento: aceitaDoc ? campoDoc : "file",
+            documento_base64: documentoBase64,
+            documento_nome: documentoNome,
             tecnico: localStorage.getItem("viper_tecnico") || "Anônimo",
             email_tecnico: localStorage.getItem("viper_email") || ""
           })

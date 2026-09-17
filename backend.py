@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from typing import Optional
 
 from runner.runner import executar_bateria
 from report.reporter import gerar_relatorio
@@ -40,8 +41,10 @@ class ConfigAtaque(BaseModel):
     dados_proteger: list[str] = []
     usar_ia_contextual: bool = True
     aceita_documento: bool = False
-    formato_documento: str | None = ""
+    formato_documento: Optional[str] = ""
     campo_documento: str = "file"
+    documento_base64: str = ""
+    documento_nome: str = ""
     tecnico: str = "Anônimo"
     email_tecnico: str = ""
 
@@ -59,6 +62,11 @@ def viper():
 @app.get("/historico")
 def historico():
     return FileResponse("frontend/historico.html")
+
+
+@app.get("/logout")
+def logout():
+    return FileResponse("frontend/logout.html")
 
 
 @app.get("/favicon.ico")
@@ -88,6 +96,8 @@ def atacar(config: ConfigAtaque):
         "aceita_documento":   config.aceita_documento,
         "formato_documento":  config.formato_documento,
         "campo_documento":    config.campo_documento,
+        "documento_base64":   config.documento_base64,
+        "documento_nome":     config.documento_nome,
     }
 
     resultados = executar_bateria(config_dict)
@@ -142,7 +152,3 @@ def api_teste(teste_id: int):
 @app.get("/api/comparativo/{id1}/{id2}")
 def api_comparativo(id1: int, id2: int):
     return comparar_testes(id1, id2)
-
-@app.get("/logout")
-def logout():
-    return FileResponse("frontend/logout.html")
