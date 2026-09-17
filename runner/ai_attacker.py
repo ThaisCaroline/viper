@@ -64,7 +64,7 @@ def executar_ataques_contextuais(config_dict: dict) -> list:
 
         duracao = round(time.time() - inicio, 2)
 
-        avaliacao = avaliar(resposta, dados_proteger, payload=payload)
+        avaliacao = avaliar(resposta, dados_proteger, payload=payload, contexto_agente=contexto)
 
         resultado = {
             "id":             f"AI-{str(uuid.uuid4())[:6].upper()}",
@@ -189,13 +189,3 @@ def _extrair_campo_mensagem(json_input: str) -> str:
     except (json.JSONDecodeError, TypeError):
         pass
     return "message"
-
-
-def _extrair_campo_resposta(json_output: str) -> str:
-    try:
-        obj = json.loads(json_output)
-        if isinstance(obj, dict) and obj:
-            return list(obj.keys())[0]
-    except (json.JSONDecodeError, TypeError):
-        pass
-    return "output"

@@ -1,7 +1,6 @@
 """
 VIPER — Garak Runner
 Usa o garak como fonte de prompts de ataque.
-Os prompts são executados via HTTP adapter do VIPER e avaliados pelo scorer do VIPER.
 """
 
 import json
@@ -30,6 +29,7 @@ def executar_garak(config_dict: dict) -> list:
     nome           = config_dict.get("nome", "Agente")
     aceita_doc     = config_dict.get("aceita_documento", False)
     campo_doc      = config_dict.get("campo_documento", "file")
+    contexto       = config_dict.get("contexto", "")
 
     campo_mensagem = config_dict.get("campo_ataque") or _extrair_campo(json_input, "message")
 
@@ -75,9 +75,9 @@ def executar_garak(config_dict: dict) -> list:
                         duracao = round(time.time() - inicio, 2)
 
                         if resposta.startswith("[HTTP 5"):
-                            avaliacao = {"sucesso": False, "detector": "marcador", "analise_ia": ""}
+                            avaliacao = {"sucesso": False, "detector": "marcador", "analise_ia": "", "recomendacao": ""}
                         else:
-                            avaliacao = avaliar(resposta, dados_proteger, payload=prompt)
+                            avaliacao = avaliar(resposta, dados_proteger, payload=prompt, contexto_agente=contexto)
 
                         resultados.append({
                             "id":             f"G-{probe_nome[:3].upper()}-{str(uuid.uuid4())[:6].upper()}",
