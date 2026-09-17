@@ -98,6 +98,19 @@ def api_historico():
     return listar_testes()
 
 
+@app.get("/api/historico/{teste_id}/html")
+def api_teste_html(teste_id: int):
+    from fastapi.responses import HTMLResponse
+    teste = buscar_teste(teste_id)
+    if not teste:
+        return {"erro": "Teste não encontrado"}
+    html_path = teste.get("html_path", "")
+    if html_path and os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<p>Relatório não disponível</p>", status_code=404)
+
+
 @app.get("/api/historico/{teste_id}")
 def api_teste(teste_id: int):
     teste = buscar_teste(teste_id)

@@ -32,7 +32,8 @@ def inicializar_banco():
             vulneraveis INTEGER NOT NULL,
             resistiu    INTEGER NOT NULL,
             score       REAL NOT NULL,
-            resultados  TEXT NOT NULL
+            resultados  TEXT NOT NULL,
+            html_path   TEXT DEFAULT ''
         )
     """)
     conn.commit()
@@ -44,8 +45,8 @@ def salvar_teste(relatorio: dict, tecnico: str):
     conn = _conectar()
     conn.execute("""
         INSERT INTO testes
-            (timestamp, url_agente, nome_agente, tecnico, total, vulneraveis, resistiu, score, resultados)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (timestamp, url_agente, nome_agente, tecnico, total, vulneraveis, resistiu, score, resultados, html_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         relatorio.get("timestamp", datetime.now().isoformat()),
         relatorio.get("url_agente", ""),
@@ -55,7 +56,8 @@ def salvar_teste(relatorio: dict, tecnico: str):
         relatorio.get("vulneraveis", 0),
         relatorio.get("resistiu", 0),
         relatorio.get("taxa_ataque", 0.0),
-        json.dumps(relatorio.get("resultados", []), ensure_ascii=False)
+        json.dumps(relatorio.get("resultados", []), ensure_ascii=False),
+        relatorio.get("html_path", "")
     ))
     conn.commit()
     conn.close()

@@ -189,6 +189,7 @@
             <th>Vetores</th>
             <th>Vulneráveis</th>
             <th>Score</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="historico-body">
@@ -228,6 +229,33 @@
     let todosOsTestes = [];
     let selecionados = [];
 
+    async function baixarJSON(id) {
+      const resp = await fetch(`/api/historico/${id}`);
+      const data = await resp.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `viper_teste_${id}.json`;
+      a.click();
+    }
+
+    async function baixarPDF(id) {
+      const resp = await fetch(`/api/historico/${id}`);
+      const data = await resp.json();
+      if (!data.html_path) { alert("Relatório HTML não disponível para este teste."); return; }
+      // Busca o HTML do relatório e abre pra impressão
+      const respHtml = await fetch(`/api/historico/${id}/html`);
+      if (respHtml.ok) {
+        const html = await respHtml.text();
+        const w = window.open("", "_blank");
+        w.document.write(html);
+        w.document.close();
+        w.onload = () => w.print();
+      } else {
+        alert("Relatório PDF não disponível para este teste.");
+      }
+    }
+
     async function carregarHistorico() {
       try {
         const resp = await fetch("/api/historico");
@@ -265,6 +293,10 @@
             <td style="text-align:center">${t.total}</td>
             <td style="text-align:center">${t.vulneraveis}</td>
             <td><span class="score-badge ${scoreClass}">${score}%</span></td>
+            <td onclick="event.stopPropagation()" style="white-space:nowrap">
+              <button onclick="baixarJSON(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer;margin-right:0.25rem">↓ JSON</button>
+              <button onclick="baixarPDF(${t.id})" style="background:transparent;border:1px solid #2a2a3e;border-radius:4px;padding:0.2rem 0.5rem;color:#888;font-size:0.6rem;font-family:var(--font);cursor:pointer">↓ PDF</button>
+            </td>
           </tr>`;
       }).join("");
     }
