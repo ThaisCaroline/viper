@@ -18,6 +18,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: clamp(15px, 1.5vw, 18px); }
     body {
       background: var(--bg);
       color: #fff;
@@ -32,9 +33,9 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 2.5rem 2rem;
+      padding: 3rem 2.5rem;
       width: 100%;
-      max-width: 380px;
+      max-width: 480px;
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
@@ -157,7 +158,6 @@
   </div>
 
   <script>
-    // Verifica se já tem sessão ativa
     const tecnico = localStorage.getItem("viper_tecnico");
     if (tecnico) {
       window.location.href = "/viper";
@@ -174,8 +174,6 @@
     }
 
     function entrarMicrosoft() {
-      // Em produção: iniciar fluxo OAuth com EntraID via MSAL
-      // Em dev: bypass — usa nome digitado ou "SSO Dev"
       const nome = document.getElementById("nome").value.trim() || "SSO Dev";
       localStorage.setItem("viper_tecnico", nome);
       window.location.href = "/viper";
