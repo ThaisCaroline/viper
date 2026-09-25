@@ -384,13 +384,6 @@
           <option value="basic">Basic Auth</option>
         </select>
         <div id="auth-bearer" style="display:none;margin-top:0.5rem">
-          <input id="auth-token" type="password" placeholder="token de acesso">
-        </div>
-        <div id="auth-basic" style="display:none;margin-top:0.5rem">
-          <input id="auth-user" type="text" placeholder="usuário" style="margin-bottom:0.4rem">
-          <input id="auth-pass" type="password" placeholder="senha">
-        </div>
-        <div id="auth-header-name-wrap" style="display:none;margin-top:0.5rem">
           <div class="label-row" style="margin-bottom:0.3rem">
             <span class="label">nome do header</span>
             <div class="tooltip-wrap">
@@ -398,7 +391,20 @@
               <div class="tooltip-box">Nome do header HTTP de autenticação. Padrão: Authorization. Use X-API-Key, api-key ou outro se o agente exigir.</div>
             </div>
           </div>
-          <input id="auth-header-name" type="text" placeholder="Authorization" value="Authorization">
+          <input id="auth-header-name" type="text" placeholder="Authorization" value="Authorization" style="margin-bottom:0.4rem">
+          <input id="auth-token" type="password" placeholder="token de acesso">
+        </div>
+        <div id="auth-basic" style="display:none;margin-top:0.5rem">
+          <div class="label-row" style="margin-bottom:0.3rem">
+            <span class="label">nome do header</span>
+            <div class="tooltip-wrap">
+              <div class="tooltip-icon">?</div>
+              <div class="tooltip-box">Nome do header HTTP de autenticação. Padrão: Authorization. Use X-API-Key, api-key ou outro se o agente exigir.</div>
+            </div>
+          </div>
+          <input id="auth-header-name-basic" type="text" placeholder="Authorization" value="Authorization" style="margin-bottom:0.4rem">
+          <input id="auth-user" type="text" placeholder="usuário" style="margin-bottom:0.4rem">
+          <input id="auth-pass" type="password" placeholder="senha">
         </div>
       </div>
 
@@ -576,7 +582,6 @@
       const tipo = document.getElementById('auth-tipo').value;
       document.getElementById('auth-bearer').style.display = tipo === 'bearer' ? 'block' : 'none';
       document.getElementById('auth-basic').style.display  = tipo === 'basic'  ? 'block' : 'none';
-      document.getElementById('auth-header-name-wrap').style.display = tipo !== 'none' ? 'block' : 'none';
     }
 
     function toggleDocFormat() {
@@ -670,7 +675,9 @@
       const url = document.getElementById("url").value.trim();
       const nome = document.getElementById("nome").value.trim() || "Agente";
       const authTipo  = document.getElementById("auth-tipo").value;
-      const authHeaderName = (document.getElementById("auth-header-name")?.value.trim() || "Authorization") || "Authorization";
+      const authHeaderName = authTipo === 'basic'
+        ? (document.getElementById("auth-header-name-basic")?.value.trim() || "Authorization")
+        : (document.getElementById("auth-header-name")?.value.trim() || "Authorization");
       let authHeader = "";
       if (authTipo === "bearer") {
         const t = document.getElementById("auth-token").value.trim();
