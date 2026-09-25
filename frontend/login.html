@@ -143,11 +143,17 @@
     document.getElementById('bypass-section').style.display = 'block';
   }
 
-  // ── Helpers de status ─────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────
   function setStatus(msg, tipo) {
     const el = document.getElementById('status');
     el.textContent = msg;
     el.className = 'status ' + (tipo || '');
+  }
+
+  function limparMsalStorage() {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('msal.') || k.startsWith('msal|'))
+      .forEach(k => localStorage.removeItem(k));
   }
 
   // ── Bypass dev (rede local) ───────────────────────────────────
@@ -169,7 +175,7 @@
     if (e.key === 'Enter') entrarBypass();
   });
 
-  // ── SSO (MSAL) — credenciais carregadas do backend ───────────
+  // ── SSO (MSAL) — usa redirect (funciona em desktop e mobile) ──
   if (isSeguro) {
     (async () => {
       try {
@@ -199,35 +205,51 @@
         const msalInstance = new msal.PublicClientApplication(msalConfig);
         const loginRequest = { scopes: ['User.Read'] };
 
+        // ── Botão: inicia redirect (sem popup — funciona em mobile) ──
         window.entrar = async function () {
           const btn = document.getElementById('btnSSO');
           btn.disabled = true;
-          setStatus('Abrindo login Microsoft...');
-
+          setStatus('Redirecionando para login Microsoft...');
           try {
-            const resultado = await msalInstance.loginPopup(loginRequest);
-            const conta = resultado.account;
-
-            localStorage.setItem('viper_tecnico', conta.name || conta.username);
-            localStorage.setItem('viper_email',   conta.username);
-
-            setStatus('Autenticado como ' + conta.name + '. Redirecionando...', 'ok');
-            setTimeout(() => { window.location.href = '/viper'; }, 800);
-
+            await msalInstance.loginRedirect(loginRequest);
+            // a página vai redirecionar — nada mais executa aqui
           } catch (erro) {
             console.error(erro);
-            if (erro.errorCode === 'user_cancelled') {
-              setStatus('Login cancelado.', 'erro');
-            } else {
-              setStatus('Erro ao autenticar: ' + erro.message, 'erro');
-            }
+            setStatus('Erro ao iniciar login: ' + erro.message, 'erro');
             btn.disabled = false;
           }
         };
 
         await msalInstance.initialize();
-        await msalInstance.handleRedirectPromise();
 
+        // ── Processa retorno do redirect ──────────────────────────
+        let resultado = null;
+        try {
+          resultado = await msalInstance.handleRedirectPromise();
+        } catch (erro) {
+          console.error('[MSAL] handleRedirectPromise erro:', erro);
+          if (erro.errorCode === 'hash_empty_error' || erro.errorCode === 'no_cached_authority_error') {
+            // estado corrompido — limpa e recarrega
+            limparMsalStorage();
+            window.location.reload();
+            return;
+          }
+          setStatus('Erro ao processar login: ' + erro.message, 'erro');
+          document.getElementById('btnSSO').disabled = false;
+          return;
+        }
+
+        // Veio do redirect com sucesso
+        if (resultado && resultado.account) {
+          const conta = resultado.account;
+          localStorage.setItem('viper_tecnico', conta.name || conta.username);
+          localStorage.setItem('viper_email',   conta.username);
+          setStatus('Autenticado. Redirecionando...', 'ok');
+          window.location.href = '/viper';
+          return;
+        }
+
+        // Já tinha sessão ativa
         const contas = msalInstance.getAllAccounts();
         if (contas.length > 0) {
           const conta = contas[0];
@@ -237,6 +259,7 @@
           return;
         }
 
+        // Nenhuma sessão — habilita o botão
         document.getElementById('btnSSO').disabled = false;
         setStatus('');
 

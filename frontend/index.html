@@ -371,14 +371,25 @@
 
       <div>
         <div class="label-row">
-          <span class="label">token</span>
+          <span class="label">autenticação do agente</span>
           <span class="label-optional">(opcional)</span>
           <div class="tooltip-wrap">
             <div class="tooltip-icon">?</div>
-            <div class="tooltip-box">Token de autenticação do agente, se necessário. Deixe vazio se não houver.<br><br>Ex: Bearer abc123</div>
+            <div class="tooltip-box">Tipo de autenticação do agente alvo.<br><br>Prefira solicitar ao desenvolvedor um endpoint de lab sem autenticação para o período de testes.</div>
           </div>
         </div>
-        <input id="token" type="password" placeholder="Bearer token do lab">
+        <select id="auth-tipo" onchange="toggleAuth()">
+          <option value="none">Nenhuma</option>
+          <option value="bearer">Bearer Token</option>
+          <option value="basic">Basic Auth</option>
+        </select>
+        <div id="auth-bearer" style="display:none;margin-top:0.5rem">
+          <input id="auth-token" type="password" placeholder="token de acesso">
+        </div>
+        <div id="auth-basic" style="display:none;margin-top:0.5rem">
+          <input id="auth-user" type="text" placeholder="usuário" style="margin-bottom:0.4rem">
+          <input id="auth-pass" type="password" placeholder="senha">
+        </div>
       </div>
 
       <div>
@@ -551,6 +562,12 @@
       txt.textContent = isPrd ? "⚠ produção detectada — bloqueado" : "lab · isolado";
     });
 
+    function toggleAuth() {
+      const tipo = document.getElementById('auth-tipo').value;
+      document.getElementById('auth-bearer').style.display = tipo === 'bearer' ? 'block' : 'none';
+      document.getElementById('auth-basic').style.display  = tipo === 'basic'  ? 'block' : 'none';
+    }
+
     function toggleDocFormat() {
       const checked = document.getElementById("aceita-doc").checked;
       document.getElementById("doc-format").classList.toggle("visible", checked);
@@ -641,7 +658,16 @@
     async function iniciarAtaque() {
       const url = document.getElementById("url").value.trim();
       const nome = document.getElementById("nome").value.trim() || "Agente";
-      const token = document.getElementById("token").value.trim();
+      const authTipo  = document.getElementById("auth-tipo").value;
+      let authHeader = "";
+      if (authTipo === "bearer") {
+        const t = document.getElementById("auth-token").value.trim();
+        if (t) authHeader = "Bearer " + t;
+      } else if (authTipo === "basic") {
+        const u = document.getElementById("auth-user").value.trim();
+        const p = document.getElementById("auth-pass").value;
+        if (u || p) authHeader = "Basic " + btoa(u + ":" + p);
+      }
       const contexto = document.getElementById("contexto").value.trim();
       const jsonInput = document.getElementById("json-input").value.trim();
       const jsonOutput = document.getElementById("json-output").value.trim();
@@ -696,7 +722,7 @@
             url,
             nome,
             ambiente: "lab",
-            token,
+            auth_header: authHeader,
             contexto,
             json_input: jsonInput,
             json_output: jsonOutput,
