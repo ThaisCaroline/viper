@@ -506,6 +506,18 @@
     const tecnicoEl = document.getElementById("tecnico-topbar");
     if (tecnicoEl) tecnicoEl.textContent = tecnico;
 
+    // ── Busca API key no startup ──────────────────────────────────
+    let viperApiKey = "";
+    (async () => {
+      try {
+        const resp = await fetch("/api/config");
+        const cfg = await resp.json();
+        viperApiKey = cfg.apiKey || "";
+      } catch(e) {
+        console.warn("Não foi possível carregar config:", e);
+      }
+    })();
+
     function sair() {
       window.location.href = "/logout";
     }
@@ -596,7 +608,6 @@
       if (!jsonInput)  { alert("Informe o JSON de input de exemplo."); return; }
       if (!jsonOutput) { alert("Informe o JSON de output de exemplo."); return; }
 
-      // Lê documento se fornecido
       let documentoBase64 = "";
       let documentoNome = "";
       if (aceitaDoc) {
@@ -628,7 +639,10 @@
       try {
         const resp = await fetch("/atacar", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": viperApiKey
+          },
           body: JSON.stringify({
             url,
             nome,

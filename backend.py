@@ -4,7 +4,7 @@ Recebe a config do alvo, executa a bateria e devolve os resultados.
 """
 
 import os
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -24,10 +24,16 @@ app = FastAPI(title="VIPER")
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 ADMINS = [e.strip().lower() for e in os.getenv("VIPER_ADMINS", "").split(",") if e.strip()]
+API_KEY = os.getenv("VIPER_API_KEY", "")
 
 
 def is_admin(email: str) -> bool:
     return email.strip().lower() in ADMINS
+
+
+def validar_api_key(x_api_key: str = Header(default="")):
+    if API_KEY and x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Chave de API inválida")
 
 
 class ConfigAtaque(BaseModel):
@@ -79,8 +85,27 @@ def api_me(email: str = Query("")):
     return {"admin": is_admin(email)}
 
 
+@app.get("/api/auth-config")
+def api_auth_config():
+    return {
+        "clientId":    os.getenv("AZURE_CLIENT_ID", ""),
+        "tenantId":    os.getenv("AZURE_TENANT_ID", ""),
+        "redirectUri": os.getenv("AZURE_REDIRECT_URI", "http://localhost:8001/viper"),
+    }
+
+
+@app.get("/api/config")
+def api_config():
+    """Configurações do frontend — inclui API key para autenticar /atacar."""
+    return {
+        "apiKey": API_KEY,
+    }
+
+
 @app.post("/atacar")
-def atacar(config: ConfigAtaque):
+def atacar(config: ConfigAtaque, x_api_key: str = Header(default="")):
+    validar_api_key(x_api_key)
+
     if config.ambiente.lower() in ["prd", "prod", "production"]:
         return {"erro": "Ambiente produtivo bloqueado. Use ambiente de laboratório."}
 
@@ -122,9 +147,9 @@ def api_historico(email: str = Query(""), admin: bool = Query(False)):
 
 
 @app.delete("/api/historico/{teste_id}")
-def api_deletar_teste(teste_id: int):
+def api_deletar_teste(teste_id: int, email: str = Query("")):
     from runner.logger import deletar_teste
-    deletar_teste(teste_id)
+    deletar_teste(teste_id, deletado_por=email)
     return {"ok": True}
 
 
@@ -152,3 +177,23 @@ def api_teste(teste_id: int):
 @app.get("/api/comparativo/{id1}/{id2}")
 def api_comparativo(id1: int, id2: int):
     return comparar_testes(id1, id2)
+
+
+@app.get("/api/audit-log")
+def api_audit_log(email: str = Query("")):
+    if not is_admin(email):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    from runner.logger import listar_audit_log
+    return listar_audit_log()
+
+
+@app.get("/api/audit-log/{audit_id}/json")
+def api_audit_json(audit_id: int, email: str = Query("")):
+    if not is_admin(email):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    from runner.logger import buscar_audit_json_path
+    from fastapi.responses import FileResponse as FR
+    json_path = buscar_audit_json_path(audit_id)
+    if not json_path or not os.path.exists(json_path):
+        raise HTTPException(status_code=404, detail="JSON não encontrado")
+    return FR(json_path, media_type="application/json", filename=os.path.basename(json_path))

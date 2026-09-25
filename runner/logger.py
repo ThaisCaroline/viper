@@ -6,7 +6,7 @@ Salva e consulta histórico de testes no SQLite.
 import json
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_PATH = os.getenv("VIPER_DB_PATH", "/app/data/viper.db")
 
@@ -38,13 +38,79 @@ def inicializar_banco():
         )
     """)
 
-    # Migração: adiciona email_tecnico se banco antigo não tiver
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            deletado_em     TEXT NOT NULL,
+            deletado_por    TEXT NOT NULL DEFAULT '',
+            teste_id        INTEGER NOT NULL,
+            timestamp       TEXT NOT NULL,
+            url_agente      TEXT NOT NULL,
+            nome_agente     TEXT NOT NULL,
+            tecnico         TEXT NOT NULL,
+            email_tecnico   TEXT NOT NULL DEFAULT '',
+            total           INTEGER NOT NULL,
+            vulneraveis     INTEGER NOT NULL,
+            resistiu        INTEGER NOT NULL,
+            score           REAL NOT NULL,
+            resultados      TEXT NOT NULL,
+            html_path       TEXT DEFAULT '',
+            json_path       TEXT DEFAULT ''
+        )
+    """)
+
+    # Migrações
     colunas = [r[1] for r in conn.execute("PRAGMA table_info(testes)").fetchall()]
     if "email_tecnico" not in colunas:
         conn.execute("ALTER TABLE testes ADD COLUMN email_tecnico TEXT NOT NULL DEFAULT ''")
 
+    audit_colunas = [r[1] for r in conn.execute("PRAGMA table_info(audit_log)").fetchall()]
+    if "json_path" not in audit_colunas:
+        conn.execute("ALTER TABLE audit_log ADD COLUMN json_path TEXT DEFAULT ''")
+    if "deletado_por" not in audit_colunas:
+        conn.execute("ALTER TABLE audit_log ADD COLUMN deletado_por TEXT NOT NULL DEFAULT ''")
+
     conn.commit()
     conn.close()
+
+    _limpar_audit_log_antigo()
+
+
+def _limpar_audit_log_antigo():
+    """Remove registros do audit_log com mais de 2 anos (e seus JSONs do disco)."""
+    limite = (datetime.now() - timedelta(days=730)).isoformat()
+    conn = _conectar()
+    rows = conn.execute(
+        "SELECT json_path FROM audit_log WHERE deletado_em < ?", (limite,)
+    ).fetchall()
+    for row in rows:
+        jp = row["json_path"]
+        if jp:
+            try:
+                if os.path.exists(jp):
+                    os.remove(jp)
+            except Exception:
+                pass
+    removidos = conn.execute(
+        "DELETE FROM audit_log WHERE deletado_em < ?", (limite,)
+    ).rowcount
+    conn.commit()
+    conn.close()
+    if removidos:
+        print(f"[AUDIT] {removidos} registro(s) expirado(s) removido(s) do audit_log (>2 anos)")
+
+
+def listar_audit_log() -> list:
+    """Retorna registros deletados do audit_log, ordenados por data de deleção desc."""
+    conn = _conectar()
+    rows = conn.execute("""
+        SELECT id, deletado_em, deletado_por, teste_id, timestamp, nome_agente, url_agente,
+               tecnico, email_tecnico, total, vulneraveis, resistiu, score, json_path
+        FROM audit_log
+        ORDER BY deletado_em DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 def salvar_teste(relatorio: dict, tecnico: str, email_tecnico: str = ""):
@@ -103,22 +169,60 @@ def buscar_teste(teste_id: int) -> dict:
     return d
 
 
-def deletar_teste(teste_id: int):
-    """Deleta um teste do banco e os arquivos gerados."""
+def deletar_teste(teste_id: int, deletado_por: str = ""):
+    """
+    Copia o teste para audit_log antes de deletar (retenção 2 anos).
+    Remove o HTML do disco mas mantém o JSON para auditoria.
+    """
     conn = _conectar()
-    row = conn.execute("SELECT html_path FROM testes WHERE id = ?", (teste_id,)).fetchone()
-    if row and row["html_path"]:
-        html_path = row["html_path"]
-        json_path = html_path.replace(".html", ".json")
-        for path in [html_path, json_path]:
+    row = conn.execute("SELECT * FROM testes WHERE id = ?", (teste_id,)).fetchone()
+
+    if row:
+        html_path = row["html_path"] or ""
+        json_path = html_path.replace(".html", ".json") if html_path else ""
+
+        conn.execute("""
+            INSERT INTO audit_log
+                (deletado_em, deletado_por, teste_id, timestamp, url_agente, nome_agente, tecnico,
+                 email_tecnico, total, vulneraveis, resistiu, score, resultados, html_path, json_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            datetime.now().isoformat(),
+            deletado_por,
+            row["id"],
+            row["timestamp"],
+            row["url_agente"],
+            row["nome_agente"],
+            row["tecnico"],
+            row["email_tecnico"],
+            row["total"],
+            row["vulneraveis"],
+            row["resistiu"],
+            row["score"],
+            row["resultados"],
+            html_path,
+            json_path if os.path.exists(json_path) else "",
+        ))
+
+        # Remove apenas o HTML do disco
+        if html_path:
             try:
-                if os.path.exists(path):
-                    os.remove(path)
+                if os.path.exists(html_path):
+                    os.remove(html_path)
             except Exception:
                 pass
+
     conn.execute("DELETE FROM testes WHERE id = ?", (teste_id,))
     conn.commit()
     conn.close()
+
+
+def buscar_audit_json_path(audit_id: int) -> str:
+    """Retorna o json_path de um registro do audit_log."""
+    conn = _conectar()
+    row = conn.execute("SELECT json_path FROM audit_log WHERE id = ?", (audit_id,)).fetchone()
+    conn.close()
+    return row["json_path"] if row and row["json_path"] else ""
 
 
 def comparar_testes(id1: int, id2: int) -> dict:

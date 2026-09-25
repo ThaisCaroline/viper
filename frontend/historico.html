@@ -17,6 +17,7 @@
       --green: #4a9e4a;
       --blue: #4a6ae2;
       --yellow: #e2a44a;
+      --purple: #a855f7;
       --font: 'Segoe UI', Arial, sans-serif;
     }
 
@@ -45,7 +46,7 @@
     .admin-badge {
       font-size: 0.65rem;
       background: #1a0a2a;
-      color: #a855f7;
+      color: var(--purple);
       border: 1px solid #3a1a5a;
       border-radius: 4px;
       padding: 0.15rem 0.5rem;
@@ -159,6 +160,61 @@
       margin-left: 0.5rem;
     }
     .sair-btn:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── Audit Log ── */
+    .audit-section {
+      display: none;
+      border: 1px solid #2a1a3a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .audit-section.visible { display: block; }
+
+    .audit-header {
+      background: #0f0a1a;
+      border-bottom: 1px solid #2a1a3a;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .audit-header:hover { background: #130d20; }
+
+    .audit-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.15rem;
+      text-transform: uppercase;
+      color: var(--purple);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .audit-toggle { font-size: 0.7rem; color: #666; }
+
+    .audit-body { display: none; }
+    .audit-body.open { display: block; }
+
+    .audit-table { width: 100%; border-collapse: collapse; }
+    .audit-table th {
+      font-size: 0.65rem;
+      color: #888;
+      letter-spacing: 0.1rem;
+      text-transform: uppercase;
+      padding: 0.55rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #1a1a2a;
+      background: #0a0a12;
+    }
+    .audit-table td {
+      padding: 0.6rem 0.75rem;
+      font-size: 0.78rem;
+      color: #aaa;
+      border-bottom: 1px solid #111;
+    }
+    .audit-table tr:hover td { background: #0d0d18; }
   </style>
 </head>
 <body>
@@ -223,6 +279,34 @@
         <tbody id="delta-body"></tbody>
       </table>
     </div>
+
+    <!-- ── Audit Log — visível só pra admin ── -->
+    <div class="audit-section" id="audit-section">
+      <div class="audit-header" onclick="toggleAudit()">
+        <span class="audit-title">🗄 Audit Log — Testes deletados</span>
+        <span class="audit-toggle" id="audit-toggle">▶ expandir</span>
+      </div>
+      <div class="audit-body" id="audit-body">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Deletado em</th>
+              <th>Deletado por</th>
+              <th>Agente</th>
+              <th>URL</th>
+              <th>Técnico</th>
+              <th>Vetores</th>
+              <th>Vulneráveis</th>
+              <th>Score</th>
+              <th>Evidência</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody">
+            <tr><td colspan="7" class="empty">Clique para carregar...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -234,36 +318,90 @@
     let isAdmin = false;
     let todosOsTestes = [];
     let selecionados = [];
+    let auditCarregado = false;
+    let auditAberto = false;
 
-    function sair() {
-    window.location.href = "/logout";
-    }
+    function sair() { window.location.href = "/logout"; }
 
     async function inicializar() {
-      // Verifica se é admin
       try {
         const resp = await fetch(`/api/me?email=${encodeURIComponent(email)}`);
         const data = await resp.json();
         isAdmin = data.admin || false;
-      } catch(e) {
-        isAdmin = false;
-      }
+      } catch(e) { isAdmin = false; }
 
       if (isAdmin) {
         document.getElementById("admin-badge").style.display = "inline";
         document.getElementById("col-tecnico").style.display = "";
         document.getElementById("section-title").textContent = "Histórico geral de testes";
+        document.getElementById("audit-section").classList.add("visible");
       }
 
       await carregarHistorico();
     }
 
+    async function toggleAudit() {
+      auditAberto = !auditAberto;
+      const body = document.getElementById("audit-body");
+      const toggle = document.getElementById("audit-toggle");
+
+      body.classList.toggle("open", auditAberto);
+      toggle.textContent = auditAberto ? "▼ recolher" : "▶ expandir";
+
+      if (auditAberto && !auditCarregado) {
+        await carregarAuditLog();
+      }
+    }
+
+    async function carregarAuditLog() {
+      const tbody = document.getElementById("audit-tbody");
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">Carregando...</td></tr>';
+      try {
+        const resp = await fetch(`/api/audit-log?email=${encodeURIComponent(email)}`);
+        if (!resp.ok) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Acesso negado.</td></tr>'; return; }
+        const dados = await resp.json();
+        auditCarregado = true;
+
+        if (!dados.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum teste deletado ainda.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = dados.map(r => {
+          const deletadoEm = r.deletado_em.slice(0, 19).replace("T", " ");
+          const ts = r.timestamp.slice(0, 19).replace("T", " ");
+          const score = r.score;
+          const scoreClass = score >= 20 ? "score-alto" : score >= 5 ? "score-medio" : "score-baixo";
+          return `
+            <tr>
+              <td style="color:#666;font-size:0.72rem">${deletadoEm}</td>
+              <td style="color:#e2a44a;font-size:0.78rem">${r.deletado_por || '—'}</td>
+              <td>${r.nome_agente}</td>
+              <td style="color:#666;font-size:0.72rem">${r.url_agente}</td>
+              <td style="color:var(--purple);font-size:0.78rem">${r.tecnico}</td>
+              <td style="text-align:center">${r.total}</td>
+              <td style="text-align:center">${r.vulneraveis}</td>
+              <td><span class="score-badge ${scoreClass}">${score}%</span></td>
+              <td>
+                ${r.json_path
+                  ? `<button onclick="baixarAuditJSON(${r.id})" style="background:transparent;border:1px solid #2a1a3a;border-radius:4px;padding:0.25rem 0.6rem;color:#a855f7;font-size:0.7rem;font-family:var(--font);cursor:pointer">↓ JSON</button>`
+                  : `<span style="color:#444;font-size:0.7rem">—</span>`}
+              </td>
+            </tr>`;
+        }).join("");
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar audit log.</td></tr>';
+      }
+    }
+
     async function deletarTeste(id) {
       if (!confirm("Deletar este teste do histórico?")) return;
-      await fetch(`/api/historico/${id}`, { method: "DELETE" });
+      await fetch(`/api/historico/${id}?email=${encodeURIComponent(email)}`, { method: "DELETE" });
       todosOsTestes = todosOsTestes.filter(t => t.id !== id);
       selecionados = selecionados.filter(s => s !== id);
       renderHistorico(todosOsTestes);
+      // Recarrega audit log se estiver aberto
+      if (auditAberto) { auditCarregado = false; await carregarAuditLog(); }
     }
 
     async function baixarJSON(id) {
@@ -441,6 +579,13 @@
 
       document.getElementById("comparativo-box").classList.add("visible");
       document.getElementById("comparativo-box").scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function baixarAuditJSON(auditId) {
+      const url = `/api/audit-log/${auditId}/json?email=${encodeURIComponent(email)}`;
+      const a = document.createElement("a");
+      a.href = url;
+      a.click();
     }
 
     inicializar();

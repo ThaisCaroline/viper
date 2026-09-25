@@ -70,6 +70,22 @@
 
     .ms-icon { width: 20px; height: 20px; flex-shrink: 0; }
 
+    .bypass-input {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: #fff;
+      font-size: 1rem;
+      font-family: 'Segoe UI', sans-serif;
+      margin-bottom: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .bypass-input:focus { border-color: #dc2626; }
+    .bypass-input::placeholder { color: #555; }
+
     .status {
       margin-top: 1.25rem;
       font-size: 0.9rem;
@@ -90,94 +106,147 @@
   <div class="title">VIPER</div>
   <p class="subtitle">Vulnerability Injection & Penetration<br>Evaluation for AI Resilience</p>
 
-  <button class="btn-sso" id="btnSSO" disabled onclick="entrar()">
-    <svg class="ms-icon" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-    </svg>
-    Entrar com conta Bemol
-  </button>
+  <!-- SSO — localhost / HTTPS -->
+  <div id="sso-section" style="display:none;">
+    <button class="btn-sso" id="btnSSO" disabled onclick="entrar()">
+      <svg class="ms-icon" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Entrar com conta Bemol
+    </button>
+  </div>
 
-  <div class="status" id="status">Carregando...</div>
+  <!-- Bypass — IP local / HTTP -->
+  <div id="bypass-section" style="display:none;">
+    <input type="text" id="nomeInput" class="bypass-input" placeholder="Seu nome completo" autocomplete="name"/>
+    <button class="btn-sso" onclick="entrarBypass()">Entrar</button>
+  </div>
+
+  <div class="status" id="status"></div>
 
   <div class="footer">Acesso restrito ao time de Cibersegurança · BEMOL S/A</div>
 </div>
 
 <script>
-  const msalConfig = {
-    auth: {
-      clientId: "4a689be0-80a1-43f0-a183-062915598dac",
-      authority: "https://login.microsoftonline.com/f10f91e5-f905-48aa-8c4c-a68d0ae5f6ec",
-      redirectUri: "http://localhost:8001/viper"
-    },
-    cache: {
-      cacheLocation: "localStorage",
-      storeAuthStateInCookie: false
-    }
+  // ── Detecta contexto ──────────────────────────────────────────
+  const isSeguro =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.protocol === 'https:';
+
+  if (isSeguro) {
+    document.getElementById('sso-section').style.display = 'block';
+  } else {
+    document.getElementById('bypass-section').style.display = 'block';
+  }
+
+  // ── Helpers de status ─────────────────────────────────────────
+  function setStatus(msg, tipo) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + (tipo || '');
+  }
+
+  // ── Bypass dev (rede local) ───────────────────────────────────
+  window.entrarBypass = function () {
+    const nome = document.getElementById('nomeInput').value.trim();
+    if (!nome) { setStatus('Por favor, informe seu nome.', 'erro'); return; }
+
+    const slug  = nome.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '.');
+    const email = slug + '@bemol.com.br';
+
+    localStorage.setItem('viper_tecnico', nome);
+    localStorage.setItem('viper_email',   email);
+    window.location.href = '/viper';
   };
 
-  const msalInstance = new msal.PublicClientApplication(msalConfig);
+  document.getElementById('nomeInput')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') entrarBypass();
+  });
 
-  const loginRequest = { scopes: ["User.Read"] };
+  // ── SSO (MSAL) — credenciais carregadas do backend ───────────
+  if (isSeguro) {
+    (async () => {
+      try {
+        setStatus('Carregando configuração...');
 
-  function setStatus(msg, tipo) {
-    const el = document.getElementById("status");
-    el.textContent = msg;
-    el.className = "status " + (tipo || "");
-  }
+        const res = await fetch('/api/auth-config');
+        if (!res.ok) throw new Error('Falha ao carregar configuração de autenticação');
+        const cfg = await res.json();
 
-  async function entrar() {
-    const btn = document.getElementById("btnSSO");
-    btn.disabled = true;
-    setStatus("Abrindo login Microsoft...");
+        if (!cfg.clientId || !cfg.tenantId) {
+          setStatus('Configuração SSO ausente no servidor.', 'erro');
+          return;
+        }
 
-    try {
-      const resultado = await msalInstance.loginPopup(loginRequest);
-      const conta = resultado.account;
+        const msalConfig = {
+          auth: {
+            clientId:    cfg.clientId,
+            authority:   'https://login.microsoftonline.com/' + cfg.tenantId,
+            redirectUri: cfg.redirectUri
+          },
+          cache: {
+            cacheLocation:          'localStorage',
+            storeAuthStateInCookie: false
+          }
+        };
 
-      localStorage.setItem("viper_tecnico", conta.name || conta.username);
-      localStorage.setItem("viper_email", conta.username);
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        const loginRequest = { scopes: ['User.Read'] };
 
-      setStatus("Autenticado como " + conta.name + ". Redirecionando...", "ok");
+        window.entrar = async function () {
+          const btn = document.getElementById('btnSSO');
+          btn.disabled = true;
+          setStatus('Abrindo login Microsoft...');
 
-      setTimeout(() => { window.location.href = "/viper"; }, 800);
+          try {
+            const resultado = await msalInstance.loginPopup(loginRequest);
+            const conta = resultado.account;
 
-    } catch (erro) {
-      console.error(erro);
-      if (erro.errorCode === "user_cancelled") {
-        setStatus("Login cancelado.", "erro");
-      } else {
-        setStatus("Erro ao autenticar: " + erro.message, "erro");
+            localStorage.setItem('viper_tecnico', conta.name || conta.username);
+            localStorage.setItem('viper_email',   conta.username);
+
+            setStatus('Autenticado como ' + conta.name + '. Redirecionando...', 'ok');
+            setTimeout(() => { window.location.href = '/viper'; }, 800);
+
+          } catch (erro) {
+            console.error(erro);
+            if (erro.errorCode === 'user_cancelled') {
+              setStatus('Login cancelado.', 'erro');
+            } else {
+              setStatus('Erro ao autenticar: ' + erro.message, 'erro');
+            }
+            btn.disabled = false;
+          }
+        };
+
+        await msalInstance.initialize();
+        await msalInstance.handleRedirectPromise();
+
+        const contas = msalInstance.getAllAccounts();
+        if (contas.length > 0) {
+          const conta = contas[0];
+          localStorage.setItem('viper_tecnico', conta.name || conta.username);
+          localStorage.setItem('viper_email',   conta.username);
+          window.location.href = '/viper';
+          return;
+        }
+
+        document.getElementById('btnSSO').disabled = false;
+        setStatus('');
+
+      } catch (erro) {
+        console.error(erro);
+        setStatus('Erro ao inicializar SSO: ' + erro.message, 'erro');
+        document.getElementById('btnSSO').disabled = false;
       }
-      btn.disabled = false;
-    }
+    })();
   }
-
-(async () => {
-    try {
-      await msalInstance.initialize();
-      
-      // Processa o redirect do logout antes de qualquer coisa
-      await msalInstance.handleRedirectPromise();
-
-      const contas = msalInstance.getAllAccounts();
-      if (contas.length > 0) {
-        const conta = contas[0];
-        localStorage.setItem("viper_tecnico", conta.name || conta.username);
-        localStorage.setItem("viper_email", conta.username);
-        window.location.href = "/viper";
-        return;
-      }
-
-      document.getElementById("btnSSO").disabled = false;
-      setStatus("");
-    } catch (erro) {
-      document.getElementById("btnSSO").disabled = false;
-      setStatus("");
-    }
-  })();
 </script>
 
 </body>
