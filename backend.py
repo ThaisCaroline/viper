@@ -80,6 +80,7 @@ class ConfigAtaque(BaseModel):
     nome: str
     ambiente: str
     auth_header: str = ""
+    auth_header_name: str = "Authorization"
     contexto: str
     json_input: str
     json_output: str
@@ -152,6 +153,7 @@ def atacar(config: ConfigAtaque, x_api_key: str = Header(default="")):
         "url":                config.url,
         "nome":               config.nome,
         "auth_header":        config.auth_header,
+        "auth_header_name":   config.auth_header_name,
         "contexto":           config.contexto,
         "json_input":         config.json_input,
         "json_output":        config.json_output,

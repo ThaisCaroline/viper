@@ -25,7 +25,8 @@ def executar_garak(config_dict: dict) -> list:
     url            = config_dict["url"]
     json_input     = config_dict.get("json_input", "")
     dados_proteger = config_dict.get("dados_proteger", [])
-    auth_header    = config_dict.get("auth_header", "")
+    auth_header      = config_dict.get("auth_header", "")
+    auth_header_name = config_dict.get("auth_header_name", "Authorization")
     nome           = config_dict.get("nome", "Agente")
     aceita_doc     = config_dict.get("aceita_documento", False)
     campo_doc      = config_dict.get("campo_documento", "file")
@@ -68,9 +69,9 @@ def executar_garak(config_dict: dict) -> list:
                         inicio = time.time()
 
                         if aceita_doc:
-                            resposta = _enviar_multipart(prompt, url, campo_mensagem, auth_header, campo_doc)
+                            resposta = _enviar_multipart(prompt, url, campo_mensagem, auth_header, campo_doc, auth_header_name)
                         else:
-                            resposta = _enviar_payload(prompt, url, campo_mensagem, auth_header)
+                            resposta = _enviar_payload(prompt, url, campo_mensagem, auth_header, auth_header_name)
 
                         duracao = round(time.time() - inicio, 2)
 
@@ -115,11 +116,11 @@ def _extrair_campo(json_str: str, fallback: str) -> str:
     return fallback
 
 
-def _enviar_payload(payload: str, url: str, campo_mensagem: str, auth_header: str) -> str:
+def _enviar_payload(payload: str, url: str, campo_mensagem: str, auth_header: str, auth_header_name: str = "Authorization") -> str:
     body = json.dumps({campo_mensagem: payload}).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if auth_header:
-        headers["Authorization"] = auth_header
+        headers[auth_header_name] = auth_header
     try:
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -130,7 +131,7 @@ def _enviar_payload(payload: str, url: str, campo_mensagem: str, auth_header: st
         return f"[ERRO DE CONEXÃO] {e.reason}"
 
 
-def _enviar_multipart(payload: str, url: str, campo_mensagem: str, auth_header: str, campo_doc: str) -> str:
+def _enviar_multipart(payload: str, url: str, campo_mensagem: str, auth_header: str, campo_doc: str, auth_header_name: str = "Authorization") -> str:
     boundary = f"----VIPERBoundary{uuid.uuid4().hex}"
     doc_bytes = DUMMY_DOC.encode("utf-8")
 
@@ -148,7 +149,7 @@ def _enviar_multipart(payload: str, url: str, campo_mensagem: str, auth_header: 
         "Content-Length": str(len(body)),
     }
     if auth_header:
-        headers["Authorization"] = auth_header
+        headers[auth_header_name] = auth_header
 
     try:
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")

@@ -21,7 +21,8 @@ def executar_injecao_documento(config_dict: dict) -> list:
     url            = config_dict["url"]
     formato        = config_dict.get("formato_documento", "txt").lower()
     dados_proteger = config_dict.get("dados_proteger", [])
-    auth_header    = config_dict.get("auth_header", "")
+    auth_header      = config_dict.get("auth_header", "")
+    auth_header_name = config_dict.get("auth_header_name", "Authorization")
     campo_doc      = config_dict.get("campo_documento", "file")
     campo_msg      = config_dict.get("campo_ataque", "message")
     nome           = config_dict.get("nome", "Agente")
@@ -46,7 +47,7 @@ def executar_injecao_documento(config_dict: dict) -> list:
     print(f"[DOC INJECTOR] Documento envenenado — enviando ao agente...")
 
     inicio = time.time()
-    resposta = _enviar_documento(caminho_doc, url, formato, auth_header, campo_doc, campo_msg)
+    resposta = _enviar_documento(caminho_doc, url, formato, auth_header, campo_doc, campo_msg, auth_header_name)
     duracao  = round(time.time() - inicio, 2)
 
     try:
@@ -139,7 +140,7 @@ def _criar_arquivo(conteudo: str, formato: str) -> str:
         return ""
 
 
-def _enviar_documento(caminho: str, url: str, formato: str, auth_header: str, campo_doc: str, campo_msg: str) -> str:
+def _enviar_documento(caminho: str, url: str, formato: str, auth_header: str, campo_doc: str, campo_msg: str, auth_header_name: str = "Authorization") -> str:
     boundary = f"----VIPERBoundary{uuid.uuid4().hex}"
     mime_types = {
         "txt":  "text/plain",
@@ -170,7 +171,7 @@ def _enviar_documento(caminho: str, url: str, formato: str, auth_header: str, ca
         "Content-Length": str(len(body)),
     }
     if auth_header:
-        headers["Authorization"] = auth_header
+        headers[auth_header_name] = auth_header
 
     try:
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")

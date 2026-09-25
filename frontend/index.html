@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VIPER</title>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>"/>
   <style>
     :root {
       --bg: #0a0a0f;
@@ -390,6 +390,16 @@
           <input id="auth-user" type="text" placeholder="usuário" style="margin-bottom:0.4rem">
           <input id="auth-pass" type="password" placeholder="senha">
         </div>
+        <div id="auth-header-name-wrap" style="display:none;margin-top:0.5rem">
+          <div class="label-row" style="margin-bottom:0.3rem">
+            <span class="label">nome do header</span>
+            <div class="tooltip-wrap">
+              <div class="tooltip-icon">?</div>
+              <div class="tooltip-box">Nome do header HTTP de autenticação. Padrão: Authorization. Use X-API-Key, api-key ou outro se o agente exigir.</div>
+            </div>
+          </div>
+          <input id="auth-header-name" type="text" placeholder="Authorization" value="Authorization">
+        </div>
       </div>
 
       <div>
@@ -566,6 +576,7 @@
       const tipo = document.getElementById('auth-tipo').value;
       document.getElementById('auth-bearer').style.display = tipo === 'bearer' ? 'block' : 'none';
       document.getElementById('auth-basic').style.display  = tipo === 'basic'  ? 'block' : 'none';
+      document.getElementById('auth-header-name-wrap').style.display = tipo !== 'none' ? 'block' : 'none';
     }
 
     function toggleDocFormat() {
@@ -659,6 +670,7 @@
       const url = document.getElementById("url").value.trim();
       const nome = document.getElementById("nome").value.trim() || "Agente";
       const authTipo  = document.getElementById("auth-tipo").value;
+      const authHeaderName = (document.getElementById("auth-header-name")?.value.trim() || "Authorization") || "Authorization";
       let authHeader = "";
       if (authTipo === "bearer") {
         const t = document.getElementById("auth-token").value.trim();
@@ -723,6 +735,7 @@
             nome,
             ambiente: "lab",
             auth_header: authHeader,
+            auth_header_name: authHeaderName,
             contexto,
             json_input: jsonInput,
             json_output: jsonOutput,
