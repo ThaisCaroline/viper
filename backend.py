@@ -4,6 +4,9 @@ Recebe a config do alvo, executa a bateria e devolve os resultados.
 """
 
 import os
+import threading
+import time
+import uuid as uuid_module
 from fastapi import FastAPI, Query, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -25,6 +28,42 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 ADMINS = [e.strip().lower() for e in os.getenv("VIPER_ADMINS", "").split(",") if e.strip()]
 API_KEY = os.getenv("VIPER_API_KEY", "")
+
+# ── Job store (in-memory) ──────────────────────────────────────────────────────
+jobs: dict = {}
+jobs_lock = threading.Lock()
+
+
+def _limpar_jobs_antigos():
+    """Remove jobs com mais de 2 horas."""
+    agora = time.time()
+    ids_remover = [jid for jid, j in list(jobs.items()) if agora - j.get("criado_em", 0) > 7200]
+    for jid in ids_remover:
+        with jobs_lock:
+            jobs.pop(jid, None)
+
+
+def _executar_job(job_id: str, config, config_dict: dict):
+    """Executa a bateria em background e atualiza o job store."""
+    try:
+        resultados = executar_bateria(config_dict)
+        relatorio = gerar_relatorio(resultados, alvo=config.nome)
+        relatorio["url_agente"] = config.url
+        salvar_teste(relatorio, tecnico=config.tecnico, email_tecnico=config.email_tecnico)
+
+        html_path = relatorio.get("html_path", "")
+        if html_path and os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as f:
+                relatorio["relatorio_html"] = f.read()
+
+        with jobs_lock:
+            jobs[job_id]["status"] = "concluido"
+            jobs[job_id]["resultado"] = relatorio
+
+    except Exception as e:
+        with jobs_lock:
+            jobs[job_id]["status"] = "erro"
+            jobs[job_id]["mensagem"] = str(e)
 
 
 def is_admin(email: str) -> bool:
@@ -125,18 +164,26 @@ def atacar(config: ConfigAtaque, x_api_key: str = Header(default="")):
         "documento_nome":     config.documento_nome,
     }
 
-    resultados = executar_bateria(config_dict)
-    relatorio  = gerar_relatorio(resultados, alvo=config.nome)
+    job_id = str(uuid_module.uuid4())[:8]
+    with jobs_lock:
+        jobs[job_id] = {"status": "rodando", "criado_em": time.time()}
 
-    relatorio["url_agente"] = config.url
-    salvar_teste(relatorio, tecnico=config.tecnico, email_tecnico=config.email_tecnico)
+    _limpar_jobs_antigos()
 
-    html_path = relatorio.get("html_path", "")
-    if html_path and os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            relatorio["relatorio_html"] = f.read()
+    thread = threading.Thread(target=_executar_job, args=(job_id, config, config_dict), daemon=True)
+    thread.start()
 
-    return relatorio
+    return {"job_id": job_id}
+
+
+@app.get("/status/{job_id}")
+def status_job(job_id: str):
+    with jobs_lock:
+        job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    # Não expõe criado_em no response
+    return {k: v for k, v in job.items() if k != "criado_em"}
 
 
 @app.get("/api/historico")

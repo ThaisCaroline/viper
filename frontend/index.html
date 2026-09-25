@@ -524,6 +524,7 @@
 
     let ultimoRelatorio = null;
     let termInterval = null;
+    let pollInterval = null;
     let estaAtacando = false;
 
     window.addEventListener("beforeunload", (e) => {
@@ -590,6 +591,53 @@
       if (termInterval) { clearInterval(termInterval); termInterval = null; }
     }
 
+    function pararPolling() {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    }
+
+    function renderizarResultados(data) {
+      ultimoRelatorio = data;
+
+      document.getElementById("s-taxa").textContent = data.taxa_ataque + "%";
+      document.getElementById("s-taxa").className = "stat-val " + (data.taxa_ataque > 0 ? "red" : "green");
+      document.getElementById("s-vuln").textContent = data.vulneraveis;
+      document.getElementById("s-vuln").className = "stat-val " + (data.vulneraveis > 0 ? "red" : "green");
+      document.getElementById("s-safe").textContent = data.resistiu;
+      document.getElementById("s-safe").className = "stat-val green";
+      document.getElementById("s-total").textContent = data.total;
+      document.getElementById("s-total").className = "stat-val gray";
+
+      document.getElementById("result-rows").innerHTML = data.resultados.map(r => {
+        const detector = r.detector || "ia";
+        const payloadTruncado = (r.payload || "").length > 200 ? (r.payload || "").slice(0, 200) + "..." : (r.payload || "");
+        const analiseHtml = r.analise_ia
+          ? `<div class="detail-label">ANÁLISE DA IA</div><div class="analise-txt">${r.analise_ia}</div>`
+          : "";
+        const recHtml = r.recomendacao
+          ? `<div class="detail-label">💡 RECOMENDAÇÃO</div><div class="analise-txt" style="color:#4ae24a">${r.recomendacao}</div>`
+          : "";
+        return `
+          <div class="result-row ${r.sucesso_ataque ? 'vuln' : 'safe'}" onclick="toggleDetail('${r.id}')">
+            <span class="rid">${r.id}</span>
+            <span class="rbadge ${r.sucesso_ataque ? 'v' : 's'}">${r.sucesso_ataque ? 'VULNERÁVEL' : 'RESISTIU'}</span>
+            <span class="rdesc">${r.descricao}</span>
+            <span class="detector-badge det-${detector}">${detector.toUpperCase()}</span>
+            <span class="rtime">${r.duracao_s}s</span>
+          </div>
+          <div class="result-detail" id="detail-${r.id}">
+            <div class="detail-label">PAYLOAD</div>
+            <div class="detail-txt">${payloadTruncado}</div>
+            <div class="detail-label">RESPOSTA DO AGENTE</div>
+            <div class="detail-txt">${r.resposta}</div>
+            ${analiseHtml}
+            ${recHtml}
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("dl-btns").classList.add("visible");
+    }
+
     async function iniciarAtaque() {
       const url = document.getElementById("url").value.trim();
       const nome = document.getElementById("nome").value.trim() || "Agente";
@@ -637,6 +685,7 @@
       iniciarTerminal();
 
       try {
+        // ── Dispara o ataque — retorna job_id imediatamente ──────
         const resp = await fetch("/atacar", {
           method: "POST",
           headers: {
@@ -664,57 +713,60 @@
         });
 
         const data = await resp.json();
-        ultimoRelatorio = data;
 
-        if (data.erro) { alert(data.erro); return; }
+        if (data.erro) {
+          alert(data.erro);
+          finalizarAtaque();
+          return;
+        }
 
-        document.getElementById("s-taxa").textContent = data.taxa_ataque + "%";
-        document.getElementById("s-taxa").className = "stat-val " + (data.taxa_ataque > 0 ? "red" : "green");
-        document.getElementById("s-vuln").textContent = data.vulneraveis;
-        document.getElementById("s-vuln").className = "stat-val " + (data.vulneraveis > 0 ? "red" : "green");
-        document.getElementById("s-safe").textContent = data.resistiu;
-        document.getElementById("s-safe").className = "stat-val green";
-        document.getElementById("s-total").textContent = data.total;
-        document.getElementById("s-total").className = "stat-val gray";
+        const jobId = data.job_id;
+        if (!jobId) {
+          alert("Erro: job_id não retornado pelo servidor.");
+          finalizarAtaque();
+          return;
+        }
 
-        document.getElementById("result-rows").innerHTML = data.resultados.map(r => {
-          const detector = r.detector || "ia";
-          const payloadTruncado = (r.payload || "").length > 200 ? (r.payload || "").slice(0, 200) + "..." : (r.payload || "");
-          const analiseHtml = r.analise_ia
-            ? `<div class="detail-label">ANÁLISE DA IA</div><div class="analise-txt">${r.analise_ia}</div>`
-            : "";
-          const recHtml = r.recomendacao
-            ? `<div class="detail-label">💡 RECOMENDAÇÃO</div><div class="analise-txt" style="color:#4ae24a">${r.recomendacao}</div>`
-            : "";
-          return `
-            <div class="result-row ${r.sucesso_ataque ? 'vuln' : 'safe'}" onclick="toggleDetail('${r.id}')">
-              <span class="rid">${r.id}</span>
-              <span class="rbadge ${r.sucesso_ataque ? 'v' : 's'}">${r.sucesso_ataque ? 'VULNERÁVEL' : 'RESISTIU'}</span>
-              <span class="rdesc">${r.descricao}</span>
-              <span class="detector-badge det-${detector}">${detector.toUpperCase()}</span>
-              <span class="rtime">${r.duracao_s}s</span>
-            </div>
-            <div class="result-detail" id="detail-${r.id}">
-              <div class="detail-label">PAYLOAD</div>
-              <div class="detail-txt">${payloadTruncado}</div>
-              <div class="detail-label">RESPOSTA DO AGENTE</div>
-              <div class="detail-txt">${r.resposta}</div>
-              ${analiseHtml}
-              ${recHtml}
-            </div>
-          `;
-        }).join("");
+        // ── Polling a cada 4s ────────────────────────────────────
+        pollInterval = setInterval(async () => {
+          try {
+            const statusResp = await fetch(`/status/${jobId}`);
+            if (!statusResp.ok) {
+              pararPolling();
+              alert("Erro ao verificar status do teste.");
+              finalizarAtaque();
+              return;
+            }
+            const statusData = await statusResp.json();
 
-        document.getElementById("dl-btns").classList.add("visible");
+            if (statusData.status === "concluido") {
+              pararPolling();
+              renderizarResultados(statusData.resultado);
+              finalizarAtaque();
+            } else if (statusData.status === "erro") {
+              pararPolling();
+              alert("Erro durante o teste: " + (statusData.mensagem || "erro desconhecido"));
+              finalizarAtaque();
+            }
+            // se "rodando", continua polling
+          } catch(e) {
+            pararPolling();
+            alert("Erro de conexão ao verificar status: " + e.message);
+            finalizarAtaque();
+          }
+        }, 4000);
 
       } catch(e) {
         alert("Erro ao conectar com o backend: " + e.message);
-      } finally {
-        pararTerminal();
-        document.getElementById("loading").classList.remove("visible");
-        document.getElementById("atk-btn").disabled = false;
-        estaAtacando = false;
+        finalizarAtaque();
       }
+    }
+
+    function finalizarAtaque() {
+      pararTerminal();
+      document.getElementById("loading").classList.remove("visible");
+      document.getElementById("atk-btn").disabled = false;
+      estaAtacando = false;
     }
 
     function baixarJSON() {
