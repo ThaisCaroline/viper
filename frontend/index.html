@@ -193,6 +193,19 @@
     }
     .atk-btn:disabled { background: #333; color: #ffffff; cursor: not-allowed; }
 
+    .ai-disclaimer {
+      font-size: 0.58rem;
+      color: #555566;
+      line-height: 1.5;
+      text-align: center;
+      padding: 0.5rem 0.25rem 0;
+      border-top: 1px solid #1e1e2e;
+    }
+    .ai-disclaimer span {
+      color: var(--purple);
+      font-weight: 600;
+    }
+
     .main {
       flex: 1;
       padding: 1.25rem;
@@ -498,6 +511,10 @@
       </div>
 
       <button class="atk-btn" id="atk-btn" onclick="iniciarAtaque()">▶ INICIAR ATAQUE</button>
+      <p class="ai-disclaimer">
+        <span>⚠ Avaliação assistida por IA.</span><br>
+        Resultados podem conter erros. Revise e valide com um profissional de cibersegurança antes de qualquer ação.
+      </p>
     </div>
 
     <div class="main">
