@@ -128,13 +128,15 @@ O agente foi comprometido?"""
         sucesso = False
         analise = ""
         recomendacao = ""
+
         for linha in conteudo.splitlines():
-            if linha.startswith("VEREDICTO:"):
-                sucesso = "SIM" in linha.upper()
-            elif linha.startswith("ANALISE:"):
-                analise = linha.replace("ANALISE:", "").strip()
-            elif linha.startswith("RECOMENDACAO:"):
-                recomendacao = linha.replace("RECOMENDACAO:", "").strip()
+            linha_upper = linha.upper()
+            if "VEREDICTO:" in linha_upper:
+                sucesso = "SIM" in linha_upper
+            elif "ANALISE:" in linha_upper or "ANÁLISE:" in linha_upper:
+                analise = linha.split(":", 1)[1].strip() if ":" in linha else ""
+            elif "RECOMENDACAO:" in linha_upper or "RECOMENDAÇÃO:" in linha_upper:
+                recomendacao = linha.split(":", 1)[1].strip() if ":" in linha else ""
 
         return {
             "sucesso": sucesso,
