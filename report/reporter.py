@@ -24,13 +24,32 @@ def _truncar(texto: str, limite: int = 200) -> str:
 
 
 def _gerar_html(relatorio: dict) -> str:
-    ts   = relatorio["timestamp"][:19].replace("T", " ")
-    taxa = relatorio["taxa_ataque"]
-    vuln = relatorio["vulneraveis"]
-    safe = relatorio["resistiu"]
+    ts    = relatorio["timestamp"][:19].replace("T", " ")
+    taxa  = relatorio["taxa_ataque"]
+    vuln  = relatorio["vulneraveis"]
+    safe  = relatorio["resistiu"]
     total = relatorio["total"]
     taxa_cor = "#e24b4a" if taxa > 0 else "#4a9e4a"
     vuln_cor = "#e24b4a" if vuln > 0 else "#4a9e4a"
+
+    # ── Seção de configuração do teste ────────────────────────────
+    cfg = relatorio.get("configuracao_teste", {})
+    cfg_html = ""
+    if cfg:
+        camadas = []
+        if cfg.get("camada_1_garak"):       camadas.append("Camada 1 — Garak")
+        if cfg.get("camada_2_ia_contextual"): camadas.append("Camada 2 — IA Contextual")
+        if cfg.get("camada_3_documento"):    camadas.append("Camada 3 — Injeção via Documento")
+        camadas_txt = " · ".join(camadas) if camadas else "—"
+
+        cfg_html = f"""
+  <div class="section-title" style="margin-top:0">Configuração do Teste</div>
+  <div class="cfg-grid">
+    <div class="cfg-item"><span class="cfg-lbl">Camadas ativas</span><span class="cfg-val">{camadas_txt}</span></div>
+    <div class="cfg-item"><span class="cfg-lbl">Variações por probe</span><span class="cfg-val">{cfg.get("max_prompts_por_probe", "—")}</span></div>
+    <div class="cfg-item"><span class="cfg-lbl">Máx. payload (chars)</span><span class="cfg-val">{cfg.get("max_payload_chars", "—")}</span></div>
+    <div class="cfg-item"><span class="cfg-lbl">Contexto do agente</span><span class="cfg-val cfg-contexto">{cfg.get("contexto", "—")}</span></div>
+  </div>"""
 
     linhas = ""
     recomendacoes_html = ""
@@ -74,7 +93,6 @@ def _gerar_html(relatorio: dict) -> str:
           </td>
         </tr>"""
 
-            # Seção de recomendações
             if recomendacao:
                 recomendacoes_html += f"""
         <div class="rec-item">
@@ -118,6 +136,12 @@ def _gerar_html(relatorio: dict) -> str:
     .stat-val {{ font-size:2.2rem; font-weight:600; line-height:1; }}
     .stat-lbl {{ font-size:0.6rem; color:#888; letter-spacing:0.12rem; margin-top:0.4rem; text-transform:uppercase; }}
 
+    .cfg-grid {{ display:grid; grid-template-columns:repeat(2,1fr); gap:0.5rem; margin-bottom:2rem; }}
+    .cfg-item {{ background:var(--card); border:1px solid var(--border); border-radius:6px; padding:0.75rem 1rem; display:flex; flex-direction:column; gap:0.25rem; }}
+    .cfg-lbl {{ font-size:0.58rem; letter-spacing:0.12rem; color:#666; text-transform:uppercase; }}
+    .cfg-val {{ font-size:0.75rem; color:#ccc; }}
+    .cfg-contexto {{ font-style:italic; color:#aaa; }}
+
     .section-title {{ font-size:0.6rem; letter-spacing:0.15rem; color:#888; text-transform:uppercase; margin-bottom:0.75rem; margin-top:2rem; }}
     table {{ width:100%; border-collapse:collapse; }}
     tr.vuln {{ border-left:3px solid var(--red); cursor:pointer; }}
@@ -151,7 +175,7 @@ def _gerar_html(relatorio: dict) -> str:
 
     @media print {{
       body {{ background:#fff; color:#000; padding:1rem; }}
-      .stat {{ background:#f5f5f5; border-color:#ddd; }}
+      .stat, .cfg-item {{ background:#f5f5f5; border-color:#ddd; }}
       tr {{ background:#fff; }}
       .vuln-detail td {{ background:#fff5f5; }}
       .detail {{ display:table-row !important; }}
@@ -178,6 +202,8 @@ def _gerar_html(relatorio: dict) -> str:
     <div class="stat"><div class="stat-val" style="color:#d8d7d7">{total}</div><div class="stat-lbl">Total</div></div>
   </div>
 
+  {cfg_html}
+
   <div class="section-title">Resultados — clique nos vulneráveis para expandir</div>
   <table>{linhas}</table>
 
@@ -198,7 +224,7 @@ def _gerar_html(relatorio: dict) -> str:
 </html>"""
 
 
-def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "") -> dict:
+def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "", config_dict: dict = None) -> dict:
     os.makedirs(output_dir, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -209,14 +235,26 @@ def gerar_relatorio(resultados: list, output_dir: str = "results", alvo: str = "
     resistiu    = total - vulneraveis
     taxa_ataque = round((vulneraveis / total * 100) if total else 0, 1)
 
+    configuracao_teste = {}
+    if config_dict:
+        configuracao_teste = {
+            "contexto":               config_dict.get("contexto", ""),
+            "camada_1_garak":         True,
+            "camada_2_ia_contextual": config_dict.get("usar_ia_contextual", True),
+            "camada_3_documento":     config_dict.get("aceita_documento", False),
+            "max_prompts_por_probe":  config_dict.get("max_prompts_por_probe", 2),
+            "max_payload_chars":      config_dict.get("max_payload_chars", 1500),
+        }
+
     relatorio = {
-        "timestamp":   datetime.now().isoformat(),
-        "alvo":        alvo,
-        "total":       total,
-        "vulneraveis": vulneraveis,
-        "resistiu":    resistiu,
-        "taxa_ataque": taxa_ataque,
-        "resultados":  resultados_limpos,
+        "timestamp":          datetime.now().isoformat(),
+        "alvo":               alvo,
+        "total":              total,
+        "vulneraveis":        vulneraveis,
+        "resistiu":           resistiu,
+        "taxa_ataque":        taxa_ataque,
+        "configuracao_teste": configuracao_teste,
+        "resultados":         resultados_limpos,
     }
 
     json_path = os.path.join(output_dir, f"resultado_{ts}.json")
