@@ -47,7 +47,7 @@ def _executar_job(job_id: str, config, config_dict: dict):
     """Executa a bateria em background e atualiza o job store."""
     try:
         resultados = executar_bateria(config_dict)
-        relatorio = gerar_relatorio(resultados, alvo=config.nome)
+        relatorio = gerar_relatorio(resultados, alvo=config.nome, config_dict=config_dict)
         relatorio["url_agente"] = config.url
         salvar_teste(relatorio, tecnico=config.tecnico, email_tecnico=config.email_tecnico)
 
