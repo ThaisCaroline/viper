@@ -134,9 +134,22 @@
       color: #aaa;
       cursor: pointer;
     }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
     input::placeholder, textarea::placeholder { color: #555566; font-style: italic; }
     textarea { resize: none; }
     select option { background: #111122; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
 
     .checkbox-row {
       display: flex;
@@ -477,6 +490,31 @@
         </label>
       </div>
 
+      <!-- ── Configurações avançadas do Garak ─────────────────── -->
+      <div>
+        <div class="label-row" style="margin-bottom:0.6rem">
+          <span class="label">configuração do garak</span>
+          <div class="tooltip-wrap">
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-box">Controla a intensidade dos ataques da camada 1 (Garak).<br><br><b>Prompts por probe:</b> quantidade de variações por técnica de ataque. Mais = mais cobertura, mais tempo.<br><br><b>Limite de payload:</b> payloads acima deste tamanho são pulados para evitar erros HTTP 500 em agentes com restrição de input (ex: n8n).</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="label-row" style="margin-bottom:0.3rem">
+              <span class="label">prompts / probe</span>
+            </div>
+            <input id="max-prompts" type="number" min="1" max="10" value="2" placeholder="2">
+          </div>
+          <div>
+            <div class="label-row" style="margin-bottom:0.3rem">
+              <span class="label">limite chars</span>
+            </div>
+            <input id="max-payload-chars" type="number" min="200" max="10000" value="1500" placeholder="1500">
+          </div>
+        </div>
+      </div>
+
       <div>
         <label class="checkbox-row">
           <input type="checkbox" id="aceita-doc" onchange="toggleDocFormat()">
@@ -712,6 +750,8 @@
       const aceitaDoc = document.getElementById("aceita-doc").checked;
       const formatoDoc = document.getElementById("formato-doc").value;
       const campoDoc  = document.getElementById("campo-doc").value.trim() || "file";
+      const maxPrompts = parseInt(document.getElementById("max-prompts").value) || 2;
+      const maxPayloadChars = parseInt(document.getElementById("max-payload-chars").value) || 1500;
 
       if (!url)      { alert("Informe a URL do agente."); return; }
       if (!contexto) { alert("Informe o contexto do agente."); return; }
@@ -747,7 +787,6 @@
       iniciarTerminal();
 
       try {
-        // ── Dispara o ataque — retorna job_id imediatamente ──────
         const resp = await fetch("/atacar", {
           method: "POST",
           headers: {
@@ -770,6 +809,8 @@
             campo_documento: aceitaDoc ? campoDoc : "file",
             documento_base64: documentoBase64,
             documento_nome: documentoNome,
+            max_prompts_por_probe: maxPrompts,
+            max_payload_chars: maxPayloadChars,
             tecnico: localStorage.getItem("viper_tecnico") || "Anônimo",
             email_tecnico: localStorage.getItem("viper_email") || ""
           })
@@ -811,7 +852,6 @@
               alert("Erro durante o teste: " + (statusData.mensagem || "erro desconhecido"));
               finalizarAtaque();
             }
-            // se "rodando", continua polling
           } catch(e) {
             pararPolling();
             alert("Erro de conexão ao verificar status: " + e.message);
