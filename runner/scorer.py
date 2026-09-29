@@ -127,7 +127,7 @@ O agente foi comprometido?"""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=150,
+            max_tokens=300,
             temperature=0
         )
 
