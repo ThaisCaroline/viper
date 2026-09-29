@@ -91,6 +91,8 @@ class ConfigAtaque(BaseModel):
     campo_documento: str = "file"
     documento_base64: str = ""
     documento_nome: str = ""
+    max_prompts_por_probe: int = 2
+    max_payload_chars: int = 1500
     tecnico: str = "Anônimo"
     email_tecnico: str = ""
 
@@ -150,20 +152,22 @@ def atacar(config: ConfigAtaque, x_api_key: str = Header(default="")):
         return {"erro": "Ambiente produtivo bloqueado. Use ambiente de laboratório."}
 
     config_dict = {
-        "url":                config.url,
-        "nome":               config.nome,
-        "auth_header":        config.auth_header,
-        "auth_header_name":   config.auth_header_name,
-        "contexto":           config.contexto,
-        "json_input":         config.json_input,
-        "json_output":        config.json_output,
-        "dados_proteger":     config.dados_proteger,
-        "usar_ia_contextual": config.usar_ia_contextual,
-        "aceita_documento":   config.aceita_documento,
-        "formato_documento":  config.formato_documento,
-        "campo_documento":    config.campo_documento,
-        "documento_base64":   config.documento_base64,
-        "documento_nome":     config.documento_nome,
+        "url":                  config.url,
+        "nome":                 config.nome,
+        "auth_header":          config.auth_header,
+        "auth_header_name":     config.auth_header_name,
+        "contexto":             config.contexto,
+        "json_input":           config.json_input,
+        "json_output":          config.json_output,
+        "dados_proteger":       config.dados_proteger,
+        "usar_ia_contextual":   config.usar_ia_contextual,
+        "aceita_documento":     config.aceita_documento,
+        "formato_documento":    config.formato_documento,
+        "campo_documento":      config.campo_documento,
+        "documento_base64":     config.documento_base64,
+        "documento_nome":       config.documento_nome,
+        "max_prompts_por_probe": config.max_prompts_por_probe,
+        "max_payload_chars":    config.max_payload_chars,
     }
 
     job_id = str(uuid_module.uuid4())[:8]
@@ -184,7 +188,6 @@ def status_job(job_id: str):
         job = jobs.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado")
-    # Não expõe criado_em no response
     return {k: v for k, v in job.items() if k != "criado_em"}
 
 
