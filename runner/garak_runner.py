@@ -22,28 +22,35 @@ def executar_garak(config_dict: dict) -> list:
         print("[GARAK] garak não instalado — pulando camada 1")
         return []
 
-    url            = config_dict["url"]
-    json_input     = config_dict.get("json_input", "")
-    dados_proteger = config_dict.get("dados_proteger", [])
+    url              = config_dict["url"]
+    json_input       = config_dict.get("json_input", "")
+    dados_proteger   = config_dict.get("dados_proteger", [])
     auth_header      = config_dict.get("auth_header", "")
     auth_header_name = config_dict.get("auth_header_name", "Authorization")
-    nome           = config_dict.get("nome", "Agente")
-    aceita_doc     = config_dict.get("aceita_documento", False)
-    campo_doc      = config_dict.get("campo_documento", "file")
-    contexto       = config_dict.get("contexto", "")
+    nome             = config_dict.get("nome", "Agente")
+    aceita_doc       = config_dict.get("aceita_documento", False)
+    campo_doc        = config_dict.get("campo_documento", "file")
+    contexto         = config_dict.get("contexto", "")
+    max_prompts      = config_dict.get("max_prompts_por_probe", 2)
+    max_payload_chars = config_dict.get("max_payload_chars", 1500)
 
     campo_mensagem = config_dict.get("campo_ataque") or _extrair_campo(json_input, "message")
 
     print(f"\n[GARAK] Iniciando — campo entrada: '{campo_mensagem}'")
+    print(f"[GARAK] Limite de payload: {max_payload_chars} chars | Prompts por probe: {max_prompts}")
 
     probes_alvo = [
         "garak.probes.dan",
         "garak.probes.misleading",
         "garak.probes.promptinject",
         "garak.probes.encoding",
+        "garak.probes.continuation",
+        "garak.probes.knownbadsignatures",
+        "garak.probes.lmrc",
     ]
 
     resultados = []
+    pulados_tamanho = 0
 
     for probe_path in probes_alvo:
         try:
@@ -62,10 +69,18 @@ def executar_garak(config_dict: dict) -> list:
                         continue
 
                     probe_nome = probe_path.split(".")[-1]
-                    print(f"  [GARAK] {probe_nome}.{classe.__name__} — {len(prompts)} prompts")
+                    prompts_selecionados = prompts[:max_prompts]
+                    print(f"  [GARAK] {probe_nome}.{classe.__name__} — {len(prompts_selecionados)} prompts")
 
-                    for prompt in prompts[:2]:
+                    for prompt in prompts_selecionados:
                         prompt = prompt.replace("{generator.name}", nome)
+
+                        # Filtro de tamanho — evita HTTP 500 por payload longo
+                        if len(prompt) > max_payload_chars:
+                            pulados_tamanho += 1
+                            print(f"    [GARAK] Pulado — payload muito longo ({len(prompt)} chars)")
+                            continue
+
                         inicio = time.time()
 
                         if aceita_doc:
@@ -102,7 +117,7 @@ def executar_garak(config_dict: dict) -> list:
             print(f"  [GARAK] Erro ao carregar {probe_path}: {e}")
             continue
 
-    print(f"[GARAK] Concluído — {len(resultados)} vetores executados")
+    print(f"[GARAK] Concluído — {len(resultados)} vetores executados | {pulados_tamanho} pulados por tamanho")
     return resultados
 
 
