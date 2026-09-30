@@ -7,6 +7,7 @@ import os
 import json
 import time
 import uuid
+import base64
 import urllib.request
 import urllib.error
 
@@ -25,16 +26,17 @@ def _cliente_ia():
 
 
 def executar_ataques_contextuais(config_dict: dict) -> list:
-    url            = config_dict["url"]
-    contexto       = config_dict.get("contexto", "")
-    json_input     = config_dict.get("json_input", "")
-    json_output    = config_dict.get("json_output", "")
-    dados_proteger = config_dict.get("dados_proteger", [])
+    url              = config_dict["url"]
+    contexto         = config_dict.get("contexto", "")
+    json_input       = config_dict.get("json_input", "")
+    json_output      = config_dict.get("json_output", "")
+    dados_proteger   = config_dict.get("dados_proteger", [])
     auth_header      = config_dict.get("auth_header", "")
     auth_header_name = config_dict.get("auth_header_name", "Authorization")
-    nome           = config_dict.get("nome", "Agente")
-    aceita_doc     = config_dict.get("aceita_documento", False)
-    campo_doc      = config_dict.get("campo_documento", "file")
+    nome             = config_dict.get("nome", "Agente")
+    aceita_doc       = config_dict.get("aceita_documento", False)
+    campo_doc        = config_dict.get("campo_documento", "file")
+    doc_base64       = config_dict.get("documento_base64", "")  # CORRIGIDO: captura o doc real
 
     if not contexto or not json_input:
         print("[IA CONTEXTUAL] Contexto ou JSON de input ausente — pulando camada 2")
@@ -59,7 +61,11 @@ def executar_ataques_contextuais(config_dict: dict) -> list:
         inicio = time.time()
 
         if aceita_doc:
-            resposta = _enviar_multipart(payload, url, campo_mensagem, auth_header, campo_doc, auth_header_name)
+            # CORRIGIDO: passa o documento real em vez do DUMMY_DOC
+            resposta = _enviar_multipart(
+                payload, url, campo_mensagem, auth_header,
+                campo_doc, auth_header_name, doc_base64=doc_base64
+            )
         else:
             resposta = _enviar_payload(payload, url, campo_mensagem, auth_header, auth_header_name)
 
@@ -152,9 +158,17 @@ def _enviar_payload(payload: str, url: str, campo_mensagem: str, auth_header: st
         return f"[ERRO DE CONEXÃO] {e.reason}"
 
 
-def _enviar_multipart(payload: str, url: str, campo_mensagem: str, auth_header: str, campo_doc: str, auth_header_name: str = "Authorization") -> str:
+def _enviar_multipart(payload: str, url: str, campo_mensagem: str, auth_header: str, campo_doc: str, auth_header_name: str = "Authorization", doc_base64: str = "") -> str:
+    # CORRIGIDO: usa o documento real se disponível, senão cai no DUMMY_DOC
+    if doc_base64:
+        try:
+            doc_bytes = base64.b64decode(doc_base64)
+        except Exception:
+            doc_bytes = DUMMY_DOC.encode("utf-8")
+    else:
+        doc_bytes = DUMMY_DOC.encode("utf-8")
+
     boundary = f"----VIPERBoundary{uuid.uuid4().hex}"
-    doc_bytes = DUMMY_DOC.encode("utf-8")
 
     body = (
         f"--{boundary}\r\n"
